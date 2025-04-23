@@ -1,66 +1,138 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { useAuth } from "@/context/authContext"
+import { apiRequest } from "@/utils/apiUtils"
+import { toast } from "@/components/ui/use-toast"
+import { Skeleton } from "@/components/ui/skeleton"
 
-// Sample user data
-const userData = {
-  name: "John Doe",
-  email: "john.doe@example.com",
-  phone: "+1 (555) 123-4567",
-  gender: "male",
-  dateOfBirth: "1990-05-15",
-  bloodGroup: "O+",
-  address: "123 Main Street, Apt 4B",
-  city: "New York",
-  state: "NY",
-  zipCode: "10001",
-  country: "United States",
-  avatar: "/placeholder.svg?height=200&width=200",
-  medicalHistory: {
-    allergies: "Penicillin, Peanuts",
-    chronicConditions: "Asthma",
-    currentMedications: "Albuterol inhaler",
-    pastSurgeries: "Appendectomy (2015)",
-  },
+interface ProfileData {
+  name: string;
+  email: string;
+  phone?: string;
+  avatar?: string;
+  medicalHistory?: {
+    allergies?: string;
+    chronicConditions?: string;
+    currentMedications?: string;
+    pastSurgeries?: string;
+  };
+  doctorDetails?: {
+    specialization?: string;
+    experience?: number;
+    fee?: number;
+  };
 }
 
 export default function ProfilePage() {
   const { user } = useAuth()
-  const [profileData, setProfileData] = useState(userData)
+  const [profileData, setProfileData] = useState<ProfileData | null>(null)
   const [isEditing, setIsEditing] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchProfileData = async () => {
+      try {
+        const data = await apiRequest("/api/auth/profile", {
+          authenticated: true,
+        }) as ProfileData
+        setProfileData(data)
+      } catch (error) {
+        console.error("Error fetching profile data:", error)
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to load profile data. Please try again.",
+        })
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    if (user) {
+      fetchProfileData()
+    }
+  }, [user])
 
   const handleInputChange = (field: string, value: string) => {
     setProfileData((prev) => ({
-      ...prev,
+      ...prev!,
       [field]: value,
     }))
   }
 
   const handleMedicalHistoryChange = (field: string, value: string) => {
     setProfileData((prev) => ({
-      ...prev,
+      ...prev!,
       medicalHistory: {
-        ...prev.medicalHistory,
+        ...prev!.medicalHistory,
         [field]: value,
       },
     }))
   }
 
-  const handleSaveProfile = () => {
-    // Logic to save profile data
-    setIsEditing(false)
+  const handleSaveProfile = async () => {
+    try {
+      await apiRequest("/api/auth/updateProfile", {
+        method: "PUT",
+        body: profileData,
+        authenticated: true,
+      })
+      toast({
+        title: "Success",
+        description: "Profile updated successfully",
+      })
+      setIsEditing(false)
+    } catch (error) {
+      console.error("Error updating profile:", error)
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update profile. Please try again.",
+      })
+    }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-grow container py-8">
+          <div className="space-y-8">
+            <Skeleton className="h-8 w-64" />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <Skeleton className="h-64 w-full" />
+              <Skeleton className="h-64 w-full md:col-span-2" />
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    )
+  }
+
+  if (!profileData) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-grow container py-8">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold mb-4">Profile Not Found</h1>
+            <p className="text-muted-foreground">Unable to load profile data. Please try again later.</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    )
   }
 
   return (
@@ -141,127 +213,43 @@ export default function ProfilePage() {
                           disabled={!isEditing}
                         />
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="phone">Phone Number</Label>
-                        <Input
-                          id="phone"
-                          value={profileData.phone}
-                          onChange={(e) => handleInputChange("phone", e.target.value)}
-                          disabled={!isEditing}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="dob">Date of Birth</Label>
-                        <Input
-                          id="dob"
-                          type="date"
-                          value={profileData.dateOfBirth}
-                          onChange={(e) => handleInputChange("dateOfBirth", e.target.value)}
-                          disabled={!isEditing}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label>Gender</Label>
-                        <RadioGroup
-                          value={profileData.gender}
-                          onValueChange={(value) => handleInputChange("gender", value)}
-                          disabled={!isEditing}
-                          className="flex space-x-4"
-                        >
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="male" id="male" />
-                            <Label htmlFor="male" className="font-normal">
-                              Male
-                            </Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="female" id="female" />
-                            <Label htmlFor="female" className="font-normal">
-                              Female
-                            </Label>
-                          </div>
-                          <div className="flex items-center space-x-2">
-                            <RadioGroupItem value="other" id="other" />
-                            <Label htmlFor="other" className="font-normal">
-                              Other
-                            </Label>
-                          </div>
-                        </RadioGroup>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="blood-group">Blood Group</Label>
-                        <Select
-                          disabled={!isEditing}
-                          value={profileData.bloodGroup}
-                          onValueChange={(value) => handleInputChange("bloodGroup", value)}
-                        >
-                          <SelectTrigger id="blood-group">
-                            <SelectValue placeholder="Select blood group" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="A+">A+</SelectItem>
-                            <SelectItem value="A-">A-</SelectItem>
-                            <SelectItem value="B+">B+</SelectItem>
-                            <SelectItem value="B-">B-</SelectItem>
-                            <SelectItem value="AB+">AB+</SelectItem>
-                            <SelectItem value="AB-">AB-</SelectItem>
-                            <SelectItem value="O+">O+</SelectItem>
-                            <SelectItem value="O-">O-</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
                     </div>
-
-                    <div className="pt-4 border-t border-border/40">
-                      <h3 className="text-lg font-medium mb-4">Address Information</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="md:col-span-2 space-y-2">
-                          <Label htmlFor="address">Street Address</Label>
-                          <Input
-                            id="address"
-                            value={profileData.address}
-                            onChange={(e) => handleInputChange("address", e.target.value)}
-                            disabled={!isEditing}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="city">City</Label>
-                          <Input
-                            id="city"
-                            value={profileData.city}
-                            onChange={(e) => handleInputChange("city", e.target.value)}
-                            disabled={!isEditing}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="state">State/Province</Label>
-                          <Input
-                            id="state"
-                            value={profileData.state}
-                            onChange={(e) => handleInputChange("state", e.target.value)}
-                            disabled={!isEditing}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="zip">ZIP/Postal Code</Label>
-                          <Input
-                            id="zip"
-                            value={profileData.zipCode}
-                            onChange={(e) => handleInputChange("zipCode", e.target.value)}
-                            disabled={!isEditing}
-                          />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="country">Country</Label>
-                          <Input
-                            id="country"
-                            value={profileData.country}
-                            onChange={(e) => handleInputChange("country", e.target.value)}
-                            disabled={!isEditing}
-                          />
+                    {user?.role === "doctor" && profileData.doctorDetails && (
+                      <div className="pt-4 border-t border-border/40">
+                        <h3 className="text-lg font-medium mb-4">Doctor Information</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="specialization">Specialization</Label>
+                            <Input
+                              id="specialization"
+                              value={profileData.doctorDetails.specialization || ""}
+                              onChange={(e) => handleInputChange("specialization", e.target.value)}
+                              disabled={!isEditing}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="experience">Years of Experience</Label>
+                            <Input
+                              id="experience"
+                              type="number"
+                              value={profileData.doctorDetails.experience || ""}
+                              onChange={(e) => handleInputChange("experience", e.target.value)}
+                              disabled={!isEditing}
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="fee">Consultation Fee (USD)</Label>
+                            <Input
+                              id="fee"
+                              type="number"
+                              value={profileData.doctorDetails.fee || ""}
+                              onChange={(e) => handleInputChange("fee", e.target.value)}
+                              disabled={!isEditing}
+                            />
+                          </div>
                         </div>
                       </div>
-                    </div>
+                    )}
                   </CardContent>
                 </Card>
               </div>
@@ -296,7 +284,7 @@ export default function ProfilePage() {
                       <Textarea
                         id="allergies"
                         placeholder="List any allergies you have"
-                        value={profileData.medicalHistory.allergies}
+                        value={profileData.medicalHistory?.allergies || ""}
                         onChange={(e) => handleMedicalHistoryChange("allergies", e.target.value)}
                         disabled={!isEditing}
                       />
@@ -306,7 +294,7 @@ export default function ProfilePage() {
                       <Textarea
                         id="chronic-conditions"
                         placeholder="List any chronic conditions"
-                        value={profileData.medicalHistory.chronicConditions}
+                        value={profileData.medicalHistory?.chronicConditions || ""}
                         onChange={(e) => handleMedicalHistoryChange("chronicConditions", e.target.value)}
                         disabled={!isEditing}
                       />
@@ -316,7 +304,7 @@ export default function ProfilePage() {
                       <Textarea
                         id="medications"
                         placeholder="List any medications you're currently taking"
-                        value={profileData.medicalHistory.currentMedications}
+                        value={profileData.medicalHistory?.currentMedications || ""}
                         onChange={(e) => handleMedicalHistoryChange("currentMedications", e.target.value)}
                         disabled={!isEditing}
                       />
@@ -326,7 +314,7 @@ export default function ProfilePage() {
                       <Textarea
                         id="surgeries"
                         placeholder="List any past surgeries with dates"
-                        value={profileData.medicalHistory.pastSurgeries}
+                        value={profileData.medicalHistory?.pastSurgeries || ""}
                         onChange={(e) => handleMedicalHistoryChange("pastSurgeries", e.target.value)}
                         disabled={!isEditing}
                       />

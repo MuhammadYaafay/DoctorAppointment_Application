@@ -238,9 +238,80 @@ const logout = async (req, res) => {
   }
 };
 
+// Update user profile
+const updateProfile = async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ 
+        success: false,
+        message: "Validation failed",
+        errors: errors.array() 
+      });
+    }
+
+    const { name, doctorDetails } = req.body;
+    const userId = req.user.id;
+
+    // Update basic user information
+    await pool.query(
+      `UPDATE users SET name = ? WHERE id = ?`,
+      [name, userId]
+    );
+
+    // If user is a doctor, update doctor details
+    if (req.user.role === "doctor" && doctorDetails) {
+      await pool.query(
+        `UPDATE doctors SET specialization = ?, experience = ?, fee = ? WHERE user_id = ?`,
+        [doctorDetails.specialization, doctorDetails.experience, doctorDetails.fee, userId]
+      );
+    }
+
+    // Get updated user data
+    const [users] = await pool.query(
+      `SELECT id, name, email, role, image_url FROM users WHERE id = ?`,
+      [userId]
+    );
+
+    if (users.length === 0) {
+      return res.status(404).json({ 
+        success: false,
+        message: "User not found" 
+      });
+    }
+
+    const user = users[0];
+
+    // Get doctor details if applicable
+    if (user.role === "doctor") {
+      const [doctors] = await pool.query(
+        `SELECT * FROM doctors WHERE user_id = ?`,
+        [userId]
+      );
+      if (doctors.length > 0) {
+        user.doctorDetails = doctors[0];
+      }
+    }
+
+    res.json({
+      success: true,
+      message: "Profile updated successfully",
+      user
+    });
+  } catch (error) {
+    console.error("Error updating profile:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   register,
   login,
   getProfile,
   logout,
+  updateProfile
 };
