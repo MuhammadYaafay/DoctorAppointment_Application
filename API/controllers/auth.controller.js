@@ -2,6 +2,7 @@ const { validationResult } = require("express-validator");
 const jwt = require("jsonwebtoken");
 const pool = require("../config/db");
 const { hashedPassword, comparePassword } = require("../utils/password");
+const path = require('path');
 
 const register = async (req, res) => {
   try {
@@ -308,10 +309,60 @@ const updateProfile = async (req, res) => {
   }
 };
 
+// Update profile picture
+const updateProfilePicture = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "No file uploaded"
+      });
+    }
+
+    const userId = req.user.id;
+    const imageUrl = `/uploads/${req.file.filename}`;
+
+    // Update user's profile picture
+    await pool.query(
+      `UPDATE users SET image_url = ? WHERE id = ?`,
+      [imageUrl, userId]
+    );
+
+    // Get updated user data
+    const [users] = await pool.query(
+      `SELECT id, name, email, role, image_url FROM users WHERE id = ?`,
+      [userId]
+    );
+
+    if (users.length === 0) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found"
+      });
+    }
+
+    const user = users[0];
+
+    res.json({
+      success: true,
+      message: "Profile picture updated successfully",
+      user
+    });
+  } catch (error) {
+    console.error("Error updating profile picture:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   register,
   login,
   getProfile,
   logout,
-  updateProfile
+  updateProfile,
+  updateProfilePicture
 };
