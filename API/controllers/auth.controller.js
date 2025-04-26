@@ -172,6 +172,14 @@ const login = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        avatar: user.image_url,
+        phone: user.phone,
+        medicalHistory: {
+          allergies: user.allergies,
+          chronicConditions: user.chronic_conditions,
+          currentMedications: user.current_medications,
+          pastSurgeries: user.past_surgeries,
+        },
         doctorDetails,
       },
     });
@@ -186,9 +194,21 @@ const login = async (req, res) => {
 
 const getProfile = async (req, res) => {
   try {
-    //user(patient) details
+    // user(patient) details
     const [users] = await pool.query(
-      `SELECT id, name, email, role, image_url, created_at FROM users WHERE id = ?`,
+      `SELECT 
+        id, 
+        name, 
+        email, 
+        role, 
+        image_url AS avatar, 
+        COALESCE(phone, '') AS phone, 
+        COALESCE(allergies, '') AS allergies, 
+        COALESCE(chronic_conditions, '') AS chronic_conditions, 
+        COALESCE(current_medications, '') AS current_medications, 
+        COALESCE(past_surgeries, '') AS past_surgeries 
+       FROM users 
+       WHERE id = ?`,
       [req.user.id]
     );
 
@@ -197,6 +217,20 @@ const getProfile = async (req, res) => {
     }
 
     const user = users[0];
+
+    // Ensure medical history always has consistent structure
+    user.medicalHistory = {
+      allergies: user.allergies || null,
+      chronicConditions: user.chronic_conditions || null,
+      currentMedications: user.current_medications || null,
+      pastSurgeries: user.past_surgeries || null,
+    };
+
+    // Remove the original flat fields to avoid confusion
+    delete user.allergies;
+    delete user.chronic_conditions;
+    delete user.current_medications;
+    delete user.past_surgeries;
 
     //doctor details
     if (user.role === "doctor") {
@@ -251,13 +285,21 @@ const updateProfile = async (req, res) => {
       });
     }
 
-    const { name, doctorDetails } = req.body;
+    const { name, phone, medicalHistory, doctorDetails } = req.body;
     const userId = req.user.id;
 
-    // Update basic user information
+    // Update basic user info
     await pool.query(
-      `UPDATE users SET name = ? WHERE id = ?`,
-      [name, userId]
+      `UPDATE users SET name = ?, phone = ?, allergies = ?, chronic_conditions = ?, current_medications = ?, past_surgeries = ? WHERE id = ?`,
+      [
+        name,
+        phone,
+        medicalHistory?.allergies,
+        medicalHistory?.chronicConditions,
+        medicalHistory?.currentMedications,
+        medicalHistory?.pastSurgeries,
+        userId,
+      ]
     );
 
     // If user is a doctor, update doctor details
@@ -270,7 +312,7 @@ const updateProfile = async (req, res) => {
 
     // Get updated user data
     const [users] = await pool.query(
-      `SELECT id, name, email, role, image_url FROM users WHERE id = ?`,
+      `SELECT id, name, email, role, image_url AS avatar, phone, allergies, chronic_conditions, current_medications, past_surgeries FROM users WHERE id = ?`,
       [userId]
     );
 
@@ -282,6 +324,14 @@ const updateProfile = async (req, res) => {
     }
 
     const user = users[0];
+
+    // Nest medical history
+    user.medicalHistory = {
+      allergies: user.allergies,
+      chronicConditions: user.chronic_conditions,
+      currentMedications: user.current_medications,
+      pastSurgeries: user.past_surgeries,
+    };
 
     // Get doctor details if applicable
     if (user.role === "doctor") {

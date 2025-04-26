@@ -75,9 +75,10 @@ const createAppointment = async (req, res) => {
 
     res.json({
       appointmentId: newAppointment.insertId,
-      orderId: order.id,
+      orderId: session.id,
       amount: doctors[0].fee,
       stripePublicKey: process.env.STRIPE_PUBLISHER_KEY,
+      url: session.url,
     });
   } catch (error) {
     console.log("create appointment errror", error);
@@ -132,14 +133,20 @@ const getUserAppointments = async (req, res) => {
   try {
     const [appointments] = await pool.query(
       `SELECT 
-        a.id, a.appointment_date, a.appointment_time, a.status, a.payment_status,
-        d.specialization, d.fee,
-        u.name as doctor_name, u.email as doctor_email
-        FROM appointments a
-        JOIN doctors d ON a.doctor_id = d.id
-        JOIN users u ON d.user_id = u.id
-        WHERE a.id = ?
-        ORDER BY a.appointment_date DESC, a.appointment_time DESC`,
+           a.id AS id,
+           a.appointment_date AS date,
+           a.appointment_time AS time,
+           a.status AS status,
+           a.payment_status AS paymentStatus,
+           d.specialization AS doctorSpecialty,
+           d.fee AS fee,
+           u.name AS doctorName,
+           u.image_url AS doctorImage
+         FROM appointments a
+         JOIN doctors d ON a.doctor_id = d.id
+         JOIN users u ON d.user_id = u.id
+         WHERE a.user_id = ?
+         ORDER BY a.appointment_date DESC, a.appointment_time DESC`,
       [req.user.id]
     );
     res.json(appointments);

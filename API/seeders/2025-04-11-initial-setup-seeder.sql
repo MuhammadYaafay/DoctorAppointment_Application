@@ -4,7 +4,7 @@ INSERT INTO users (name, email, password, role, image_url) VALUES
 ('John Doe', 'john@example.com', 'hashed_password_3', 'patient', 'https://example.com/images/john.jpg');
 
 INSERT INTO doctors (user_id, specialization, experience, fee, is_approved) VALUES
-(2, 'Cardiology', 10, 1500.00, 1);
+(1, 'Cardiology', 10, 1500, 1);
 
 INSERT INTO appointments (user_id, doctor_id, appointment_date, appointment_time, status, payment_status) VALUES
 (3, 2, '2025-04-15', '10:30:00', 'confirmed', 'completed'),

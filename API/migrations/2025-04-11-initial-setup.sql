@@ -6,6 +6,11 @@ CREATE TABLE
         password VARCHAR(255) NOT NULL,
         role ENUM ('admin', 'doctor', 'patient') NOT NULL DEFAULT 'patient',
         image_url VARCHAR(255),
+        phone VARCHAR(20),
+        allergies TEXT,
+        chronic_conditions TEXT,
+        current_medications TEXT,
+        past_surgeries TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
@@ -16,6 +21,16 @@ CREATE TABLE
         specialization VARCHAR(255) NOT NULL,
         experience INT NOT NULL,
         fee DECIMAL(10, 2) NOT NULL,
+        rating DECIMAL(3,1) DEFAULT 0,
+        reviews_count INT DEFAULT 0,
+        availability VARCHAR(255),
+        about TEXT,
+        services JSON,
+        languages JSON,
+        education JSON,
+        certifications JSON,
+        location JSON,
+        available_slots JSON,
         is_approved TINYINT (1) DEFAULT 0,
         FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
     );

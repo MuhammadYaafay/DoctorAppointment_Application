@@ -5,11 +5,16 @@ const getAllDoctors = async (req, res) => {
   try {
     const [doctors] = await pool.query(
       `SELECT 
-        d.id, d.specialization, d.experience, d.fee, d.is_approved,
-        u.name, u.email, u.image_url
-        FROM doctors d
-        JOIN users u ON d.user_id = u.id
-        WHERE d.is_approved = true`
+        d.id, d.specialization AS specialty, d.experience, d.fee,
+        d.rating, d.reviews_count AS reviews,
+        d.availability, d.about, d.services, d.languages,
+        d.education, d.certifications, d.location,
+        d.available_slots AS availableSlots,
+        u.name, u.email,
+        u.image_url AS image
+      FROM doctors d
+      JOIN users u ON d.user_id = u.id
+      WHERE d.is_approved = 1`
     );
     res.json(doctors);
   } catch (error) {
@@ -22,11 +27,16 @@ const getDoctorById = async (req, res) => {
   try {
     const [doctors] = await pool.query(
       `SELECT
-            d.id, d.specialization, d.experience, d.fee, d.is_approved,
-            u.name, u.email, u.image_url
-            FROM doctors d
-            JOIN users u ON d.user_id = u.id
-            WHERE d.id = ? AND d.is_approved = 1`,
+            d.id, d.specialization AS specialty, d.experience, d.fee,
+            d.rating, d.reviews_count AS reviews,
+            d.availability, d.about, d.services, d.languages,
+            d.education, d.certifications, d.location,
+            d.available_slots AS availableSlots,
+            u.name, u.email,
+            u.image_url AS image
+        FROM doctors d
+        JOIN users u ON d.user_id = u.id
+        WHERE d.id = ? AND d.is_approved = 1`,
       [req.params.id]
     );
 
