@@ -11,18 +11,18 @@ interface Doctor {
   fee: number
   image: string
   availability: string
-  languages: string[]
-  education: Array<{ degree: string; institution: string; year: string }>
-  certifications: string[]
+  languages?: string[]  // Made optional
+  education?: Array<{ degree: string; institution: string; year: string }>
+  certifications?: string[]  // Made optional
   about: string
-  services: string[]
+  services?: string[]
   location: {
     address: string
     city: string
     state: string
     zipCode: string
   }
-  availableSlots: Array<{ date: string; slots: string[] }>
+  availableSlots?: Array<{ date: string; slots: string[] }>
 }
 
 interface DoctorProfileProps {
@@ -30,6 +30,13 @@ interface DoctorProfileProps {
 }
 
 export function DoctorProfile({ doctor }: DoctorProfileProps) {
+  // Safe defaults for arrays
+  const certifications = doctor.certifications || []
+  const languages = doctor.languages || []
+  const services = doctor.services || []
+  const education = doctor.education || []
+  const availableSlots = doctor.availableSlots || []
+
   return (
     <div className="rounded-xl border border-border/40 bg-card overflow-hidden">
       <div className="p-6">
@@ -46,7 +53,9 @@ export function DoctorProfile({ doctor }: DoctorProfileProps) {
             <div>
               <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-bold">{doctor.name}</h1>
-                <Badge className="bg-teal-600 hover:bg-teal-700">{doctor.availability}</Badge>
+                <Badge className="bg-teal-600 hover:bg-teal-700">
+                  {doctor.availability || "Not Available"}
+                </Badge>
               </div>
               <p className="text-muted-foreground">{doctor.specialty}</p>
             </div>
@@ -56,7 +65,9 @@ export function DoctorProfile({ doctor }: DoctorProfileProps) {
                 <Star className="h-5 w-5 fill-yellow-500 text-yellow-500 mr-1" />
                 <div>
                   <span className="font-medium">{doctor.rating}</span>
-                  <span className="text-muted-foreground text-sm ml-1">({doctor.reviews} reviews)</span>
+                  <span className="text-muted-foreground text-sm ml-1">
+                    ({doctor.reviews} reviews)
+                  </span>
                 </div>
               </div>
 
@@ -71,17 +82,21 @@ export function DoctorProfile({ doctor }: DoctorProfileProps) {
               <div className="flex items-center">
                 <Award className="h-5 w-5 text-teal-500 mr-1" />
                 <div>
-                  <span className="font-medium">{doctor.certifications.length}</span>
+                  <span className="font-medium">{certifications.length}</span>
                   <span className="text-muted-foreground text-sm ml-1">certifications</span>
                 </div>
               </div>
 
-              <div className="flex items-center">
-                <Languages className="h-5 w-5 text-teal-500 mr-1" />
-                <div>
-                  <span className="text-muted-foreground text-sm">Speaks: {doctor.languages.join(", ")}</span>
+              {languages.length > 0 && (
+                <div className="flex items-center">
+                  <Languages className="h-5 w-5 text-teal-500 mr-1" />
+                  <div>
+                    <span className="text-muted-foreground text-sm">
+                      Speaks: {languages.join(", ")}
+                    </span>
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
 
             <div className="pt-2 border-t border-border/40">
@@ -92,7 +107,9 @@ export function DoctorProfile({ doctor }: DoctorProfileProps) {
                 </div>
                 <div className="text-right">
                   <span className="text-sm text-muted-foreground">Next Available</span>
-                  <p className="font-medium text-teal-500">Today, 09:00 AM</p>
+                  <p className="font-medium text-teal-500">
+                    {availableSlots[0]?.slots[0] || "No availability"}
+                  </p>
                 </div>
               </div>
             </div>

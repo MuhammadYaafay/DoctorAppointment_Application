@@ -1,6 +1,9 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useAuth } from "@/context/authContext"
+import { apiRequest } from "@/utils/apiUtils"
+import { toast } from "sonner"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -8,69 +11,27 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { AppointmentCard } from "@/components/appointment-card"
 import { AppointmentFilters } from "@/components/appointment-filters"
 
-// Sample appointments data
-const appointmentsData = [
-  {
-    id: "1",
-    doctorName: "Dr. Sarah Johnson",
-    doctorSpecialty: "Cardiology",
-    doctorImage: "/placeholder.svg?height=100&width=100",
-    date: "2023-10-15",
-    time: "09:00 AM",
-    status: "upcoming",
-    paymentStatus: "paid",
-    fee: 150,
-  },
-  {
-    id: "2",
-    doctorName: "Dr. Michael Chen",
-    doctorSpecialty: "Neurology",
-    doctorImage: "/placeholder.svg?height=100&width=100",
-    date: "2023-10-20",
-    time: "11:30 AM",
-    status: "upcoming",
-    paymentStatus: "pending",
-    fee: 180,
-  },
-  {
-    id: "3",
-    doctorName: "Dr. Emily Rodriguez",
-    doctorSpecialty: "Pediatrics",
-    doctorImage: "/placeholder.svg?height=100&width=100",
-    date: "2023-09-30",
-    time: "10:00 AM",
-    status: "completed",
-    paymentStatus: "paid",
-    fee: 120,
-  },
-  {
-    id: "4",
-    doctorName: "Dr. James Wilson",
-    doctorSpecialty: "Orthopedics",
-    doctorImage: "/placeholder.svg?height=100&width=100",
-    date: "2023-09-25",
-    time: "02:30 PM",
-    status: "cancelled",
-    paymentStatus: "refunded",
-    fee: 200,
-  },
-  {
-    id: "5",
-    doctorName: "Dr. Lisa Thompson",
-    doctorSpecialty: "Dermatology",
-    doctorImage: "/placeholder.svg?height=100&width=100",
-    date: "2023-10-18",
-    time: "03:00 PM",
-    status: "upcoming",
-    paymentStatus: "paid",
-    fee: 160,
-  },
-]
-
 export default function AppointmentsPage() {
+  const { user } = useAuth()
   const [activeTab, setActiveTab] = useState("all")
+  const [appointments, setAppointments] = useState<any[]>([])
+  const [isLoading, setIsLoading] = useState(true)
 
-  const filteredAppointments = appointmentsData.filter((appointment) => {
+  useEffect(() => {
+    const fetchAppointments = async () => {
+      try {
+        const data = await apiRequest<any[]>("/api/appointments/user", { authenticated: true })
+        setAppointments(data)
+      } catch (error) {
+        toast.error((error as Error).message || "Failed to load appointments")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    if (user) fetchAppointments()
+  }, [user])
+
+  const filteredAppointments = appointments.filter((appointment: any) => {
     if (activeTab === "all") return true
     return appointment.status === activeTab
   })
@@ -107,8 +68,10 @@ export default function AppointmentsPage() {
                     </TabsList>
                     <TabsContent value={activeTab} className="mt-6">
                       <div className="space-y-4">
-                        {filteredAppointments.length > 0 ? (
-                          filteredAppointments.map((appointment) => (
+                        {isLoading ? (
+                          <div>Loading appointments...</div>
+                        ) : filteredAppointments.length > 0 ? (
+                          filteredAppointments.map((appointment: any) => (
                             <AppointmentCard key={appointment.id} appointment={appointment} />
                           ))
                         ) : (

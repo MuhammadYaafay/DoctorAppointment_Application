@@ -1,3 +1,10 @@
+'use client'
+
+import { useState, useEffect } from "react"
+import { useParams } from "next/navigation"
+import { useAuth } from "@/context/authContext"
+import { apiRequest } from "@/utils/apiUtils"
+import { toast } from "sonner"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { DoctorProfile } from "@/components/doctor-profile"
@@ -6,63 +13,57 @@ import { DoctorReviews } from "@/components/doctor-reviews"
 import { RelatedDoctors } from "@/components/related-doctors"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
-// Update the availableSlots to include dates relative to the current date
-const today = new Date()
-const tomorrow = new Date(today)
-tomorrow.setDate(tomorrow.getDate() + 1)
-const dayAfterTomorrow = new Date(today)
-dayAfterTomorrow.setDate(dayAfterTomorrow.getDate() + 2)
-
-const formatDateString = (date: Date) => {
-  return date.toISOString().split("T")[0]
+interface DoctorData{
+  id: string,
+  name: string,
+  specialty: string,
+  experience: number,
+  rating: number,
+  reviews: number,
+  fee: number,
+  image: string,
 }
 
-// Sample doctor data
-const doctor = {
-  id: "1",
-  name: "Dr. Sarah Johnson",
-  specialty: "Cardiology",
-  experience: 12,
-  rating: 4.9,
-  reviews: 124,
-  fee: 150,
-  image: "../../../public/doc2.png?height=300&width=300",
-  availability: "Available Today",
-  languages: ["English", "Spanish"],
-  education: [
-    { degree: "MD in Cardiology", institution: "Harvard Medical School", year: "2008" },
-    { degree: "MBBS", institution: "Johns Hopkins University", year: "2004" },
-  ],
-  certifications: [
-    "American Board of Internal Medicine",
-    "American College of Cardiology",
-    "Advanced Cardiac Life Support (ACLS)",
-  ],
-  // languages: ["English", "Spanish"],
-  about:
-    "Dr. Sarah Johnson is a board-certified cardiologist with over 12 years of experience in diagnosing and treating heart conditions. She specializes in preventive cardiology, heart failure management, and cardiac rehabilitation. Dr. Johnson is known for her patient-centered approach and dedication to providing comprehensive cardiac care.",
-  services: [
-    "Cardiac Consultation",
-    "Echocardiography",
-    "Stress Testing",
-    "Holter Monitoring",
-    "Cardiac Rehabilitation",
-    "Preventive Cardiology",
-  ],
-  location: {
-    address: "123 Medical Plaza, Suite 456",
-    city: "New York",
-    state: "NY",
-    zipCode: "10001",
-  },
-  availableSlots: [
-    { date: formatDateString(today), slots: ["09:00 AM", "11:30 AM", "02:00 PM", "04:30 PM"] },
-    { date: formatDateString(tomorrow), slots: ["10:00 AM", "01:00 PM", "03:30 PM"] },
-    { date: formatDateString(dayAfterTomorrow), slots: ["09:30 AM", "12:00 PM", "02:30 PM", "05:00 PM"] },
-  ],
-}
+export default function DoctorDetailPage() {
+  const { id } = useParams<{ id: string }>()
+  const { user } = useAuth()
+  const [doctor, setDoctor] = useState<DoctorData | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
 
-export default function DoctorDetailPage({ params }: { params: { id: string } }) {
+  useEffect(() => {
+    const fetchDoctor = async () => {
+      try {
+        const data = await apiRequest<DoctorData>(`/api/doctor/${id}`, { authenticated: true })
+        setDoctor(data)
+      } catch (error) {
+        toast.error((error as Error).message || "Failed to load doctor details")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+    if (user) fetchDoctor()
+  }, [user, id])
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-grow flex items-center justify-center">Loading doctor details...</main>
+        <Footer />
+      </div>
+    )
+  }
+
+  if (!doctor) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-grow flex items-center justify-center">Doctor not found</main>
+        <Footer />
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -79,12 +80,12 @@ export default function DoctorDetailPage({ params }: { params: { id: string } })
                   <TabsTrigger value="location">Location</TabsTrigger>
                 </TabsList>
                 <TabsContent value="about" className="mt-4 space-y-6">
-                  <div>
+                  {/* <div>
                     <h3 className="text-lg font-semibold mb-2">About Dr. {doctor.name}</h3>
                     <p className="text-muted-foreground">{doctor.about}</p>
-                  </div>
+                  </div> */}
 
-                  <div>
+                  {/* <div>
                     <h3 className="text-lg font-semibold mb-2">Services</h3>
                     <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
                       {doctor.services.map((service, index) => (
@@ -94,9 +95,9 @@ export default function DoctorDetailPage({ params }: { params: { id: string } })
                         </li>
                       ))}
                     </ul>
-                  </div>
+                  </div> */}
 
-                  <div>
+                  {/* <div>
                     <h3 className="text-lg font-semibold mb-2">Education</h3>
                     <ul className="space-y-3">
                       {doctor.education.map((edu, index) => (
@@ -108,9 +109,9 @@ export default function DoctorDetailPage({ params }: { params: { id: string } })
                         </li>
                       ))}
                     </ul>
-                  </div>
+                  </div> */}
 
-                  <div>
+                  {/* <div>
                     <h3 className="text-lg font-semibold mb-2">Certifications</h3>
                     <ul className="space-y-1">
                       {doctor.certifications.map((cert, index) => (
@@ -120,7 +121,7 @@ export default function DoctorDetailPage({ params }: { params: { id: string } })
                         </li>
                       ))}
                     </ul>
-                  </div>
+                  </div> */}
                 </TabsContent>
 
                 <TabsContent value="reviews" className="mt-4">
@@ -129,14 +130,14 @@ export default function DoctorDetailPage({ params }: { params: { id: string } })
 
                 <TabsContent value="location" className="mt-4">
                   <div className="space-y-4">
-                    <div>
+                    {/* <div>
                       <h3 className="text-lg font-semibold mb-2">Clinic Address</h3>
                       <p className="text-muted-foreground">
                         {doctor.location.address}
                         <br />
                         {doctor.location.city}, {doctor.location.state} {doctor.location.zipCode}
                       </p>
-                    </div>
+                    </div> */}
 
                     <div className="aspect-video rounded-lg overflow-hidden border border-border/40">
                       {/* Map placeholder */}

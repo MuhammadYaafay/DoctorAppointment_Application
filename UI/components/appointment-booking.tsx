@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
+import { apiRequest } from "@/utils/apiUtils"
 
 interface Doctor {
   id: string
@@ -59,25 +60,23 @@ export function AppointmentBooking({ doctor }: AppointmentBookingProps) {
     setIsBooking(true)
 
     try {
-      // In a real app, this would be an API call to save the booking
-      // Simulate API call with a timeout
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-
-      // Show success toast
-      toast({
-        title: "Appointment Booked!",
-        description: `Your appointment with ${doctor.name} on ${formatDateToString(date)} at ${selectedSlot} has been confirmed.`,
-        variant: "default",
+      const response = await apiRequest("/api/appointments/create", {
+        method: "POST",
+        authenticated: true,
+        body: {
+          doctorId: doctor.id,
+          appointmentDate: formatDateToString(date),
+          appointmentTime: selectedSlot,
+        },
       })
 
-      // Redirect to appointments page
-      router.push("/appointments")
+      // Redirect to Stripe checkout
+      window.location.href = response.url
     } catch (error) {
-      // Show error toast
       toast({
-        title: "Booking Failed",
-        description: "There was an error booking your appointment. Please try again.",
         variant: "destructive",
+        title: "Booking Failed",
+        description: error instanceof Error ? error.message : "An error occurred during booking.",
       })
     } finally {
       setIsBooking(false)

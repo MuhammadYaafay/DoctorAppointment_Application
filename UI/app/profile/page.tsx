@@ -18,18 +18,18 @@ import { Skeleton } from "@/components/ui/skeleton"
 interface ProfileData {
   name: string;
   email: string;
-  phone?: string;
-  avatar?: string;
+  phone?: string | null;
+  avatar?: string | null;
   medicalHistory?: {
-    allergies?: string;
-    chronicConditions?: string;
-    currentMedications?: string;
-    pastSurgeries?: string;
+    allergies?: string | null;
+    chronicConditions?: string | null;
+    currentMedications?: string | null;
+    pastSurgeries?: string | null;
   };
   doctorDetails?: {
-    specialization?: string;
-    experience?: number;
-    fee?: number;
+    specialization?: string | null;
+    experience?: number | null;
+    fee?: number | null;
   };
 }
 
@@ -66,7 +66,7 @@ export default function ProfilePage() {
   const handleInputChange = (field: string, value: string) => {
     setProfileData((prev) => ({
       ...prev!,
-      [field]: value,
+      [field]: value || null,
     }))
   }
 
@@ -74,8 +74,8 @@ export default function ProfilePage() {
     setProfileData((prev) => ({
       ...prev!,
       medicalHistory: {
-        ...prev!.medicalHistory,
-        [field]: value,
+        ...prev!.medicalHistory || {},
+        [field]: value || null,
       },
     }))
   }
@@ -210,6 +210,16 @@ export default function ProfilePage() {
                           type="email"
                           value={profileData.email}
                           onChange={(e) => handleInputChange("email", e.target.value)}
+                          disabled={!isEditing}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="phone">Phone Number</Label>
+                        <Input
+                          id="phone"
+                          type="tel"
+                          value={profileData.phone || ""}
+                          onChange={(e) => handleInputChange("phone", e.target.value)}
                           disabled={!isEditing}
                         />
                       </div>

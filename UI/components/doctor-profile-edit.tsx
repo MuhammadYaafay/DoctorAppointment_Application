@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -11,77 +11,156 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useToast } from "@/hooks/use-toast"
+import { useAuth } from "@/context/authContext"
+import { apiRequest } from "@/utils/apiUtils"
+import { Footer } from "./footer"
+import { Header } from "./header"
+import { Skeleton } from "./ui/skeleton"
 
 // Sample doctor data
-const doctorData = {
-  name: "Dr. Sarah Johnson",
-  specialty: "Cardiology",
-  email: "sarah.johnson@example.com",
-  phone: "+1 (555) 123-4567",
-  experience: 12,
-  fee: 150,
-  avatar: "/placeholder.svg?height=200&width=200",
-  about:
-    "Dr. Sarah Johnson is a board-certified cardiologist with over 12 years of experience in diagnosing and treating heart conditions. She specializes in preventive cardiology, heart failure management, and cardiac rehabilitation. Dr. Johnson is known for her patient-centered approach and dedication to providing comprehensive cardiac care.",
-  education: [
-    { degree: "MD in Cardiology", institution: "Harvard Medical School", year: "2008" },
-    { degree: "MBBS", institution: "Johns Hopkins University", year: "2004" },
-  ],
-  certifications: [
-    "American Board of Internal Medicine",
-    "American College of Cardiology",
-    "Advanced Cardiac Life Support (ACLS)",
-  ],
-  languages: ["English", "Spanish"],
-  address: "123 Medical Plaza, Suite 456, New York, NY 10001",
-  workingHours: "Monday - Friday: 9:00 AM - 5:00 PM\nSaturday: 9:00 AM - 1:00 PM\nSunday: Closed",
-  isAvailable: true,
-  services: [
-    "Cardiac Consultation",
-    "Echocardiography",
-    "Stress Testing",
-    "Holter Monitoring",
-    "Cardiac Rehabilitation",
-    "Preventive Cardiology",
-  ],
+// const doctorData = {
+//   name: "Dr. Sarah Johnson",
+//   specialty: "Cardiology",
+//   email: "sarah.johnson@example.com",
+//   phone: "+1 (555) 123-4567",
+//   experience: 12,
+//   fee: 150,
+//   avatar: "/placeholder.svg?height=200&width=200",
+//   about:
+//     "Dr. Sarah Johnson is a board-certified cardiologist with over 12 years of experience in diagnosing and treating heart conditions. She specializes in preventive cardiology, heart failure management, and cardiac rehabilitation. Dr. Johnson is known for her patient-centered approach and dedication to providing comprehensive cardiac care.",
+//   education: [
+//     { degree: "MD in Cardiology", institution: "Harvard Medical School", year: "2008" },
+//     { degree: "MBBS", institution: "Johns Hopkins University", year: "2004" },
+//   ],
+//   certifications: [
+//     "American Board of Internal Medicine",
+//     "American College of Cardiology",
+//     "Advanced Cardiac Life Support (ACLS)",
+//   ],
+//   languages: ["English", "Spanish"],
+//   address: "123 Medical Plaza, Suite 456, New York, NY 10001",
+//   workingHours: "Monday - Friday: 9:00 AM - 5:00 PM\nSaturday: 9:00 AM - 1:00 PM\nSunday: Closed",
+//   isAvailable: true,
+//   services: [
+//     "Cardiac Consultation",
+//     "Echocardiography",
+//     "Stress Testing",
+//     "Holter Monitoring",
+//     "Cardiac Rehabilitation",
+//     "Preventive Cardiology",
+//   ],
+// }
+
+interface ProfileData {
+  name: string;
+  email: string;
+  phone?: string;
+  avatar?: string;
+  medicalHistory?: {
+    allergies?: string;
+    chronicConditions?: string;
+    currentMedications?: string;
+    pastSurgeries?: string;
+  };
+  doctorDetails?: {
+    specialty?: string;
+    experience?: number;
+    fee?: number;
+  };
 }
 
 export function DoctorProfile() {
-  const [profileData, setProfileData] = useState(doctorData)
+  const {user} = useAuth();
+  const [profileData, setProfileData] = useState<ProfileData | null>(null)
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
   const { toast } = useToast()
+
+  useEffect(() => {
+    const fetchProfileData = async () => {
+      try {
+        const data = await apiRequest("/api/auth/profile", {
+          authenticated: true,
+        }) as ProfileData
+        setProfileData(data)
+      } catch (error) {
+        console.error("Error fetching profile data:", error)
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to load profile data. Please try again.",
+        })
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    if (user) {
+      fetchProfileData()
+    }
+  }, [user])
 
   const handleInputChange = (field: string, value: any) => {
     setProfileData((prev) => ({
-      ...prev,
+      ...prev!,
       [field]: value,
     }))
   }
 
   const handleSaveProfile = async () => {
-    setIsSaving(true)
-
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1500))
-
-      toast({
-        title: "Profile Updated",
-        description: "Your profile information has been successfully updated.",
-        variant: "default",
+      await apiRequest("/api/auth/updateProfile", {
+        method: "PUT",
+        body: profileData,
+        authenticated: true,
       })
-
+      toast({
+        title: "Success",
+        description: "Profile updated successfully",
+      })
       setIsEditing(false)
     } catch (error) {
+      console.error("Error updating profile:", error)
       toast({
-        title: "Update Failed",
-        description: "There was an error updating your profile. Please try again.",
         variant: "destructive",
+        title: "Error",
+        description: "Failed to update profile. Please try again.",
       })
-    } finally {
-      setIsSaving(false)
     }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-grow container py-8">
+          <div className="space-y-8">
+            <Skeleton className="h-8 w-64" />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <Skeleton className="h-64 w-full" />
+              <Skeleton className="h-64 w-full md:col-span-2" />
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    )
+  }
+
+  if (!profileData) {
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <main className="flex-grow container py-8">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold mb-4">Profile Not Found</h1>
+            <p className="text-muted-foreground">Unable to load profile data. Please try again later.</p>
+          </div>
+        </main>
+        <Footer />
+      </div>
+    )
   }
 
   return (
@@ -157,7 +236,7 @@ export function DoctorProfile() {
                     <Label htmlFor="specialty">Specialty</Label>
                     <Select
                       disabled={!isEditing || isSaving}
-                      value={profileData.specialty}
+                      value={profileData.doctorDetails.specialty || ""}
                       onValueChange={(value) => handleInputChange("specialty", value)}
                     >
                       <SelectTrigger id="specialty">
@@ -197,7 +276,7 @@ export function DoctorProfile() {
                     <Input
                       id="experience"
                       type="number"
-                      value={profileData.experience.toString()}
+                      value={profileData.doctorDetails.experience.toString()}
                       onChange={(e) => handleInputChange("experience", Number.parseInt(e.target.value))}
                       disabled={!isEditing || isSaving}
                     />
@@ -207,35 +286,14 @@ export function DoctorProfile() {
                     <Input
                       id="fee"
                       type="number"
-                      value={profileData.fee.toString()}
+                      value={profileData.doctorDetails.fee.toString()}
                       onChange={(e) => handleInputChange("fee", Number.parseInt(e.target.value))}
                       disabled={!isEditing || isSaving}
                     />
                   </div>
                 </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="address">Clinic Address</Label>
-                  <Input
-                    id="address"
-                    value={profileData.address}
-                    onChange={(e) => handleInputChange("address", e.target.value)}
-                    disabled={!isEditing || isSaving}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="about">About</Label>
-                  <Textarea
-                    id="about"
-                    rows={4}
-                    value={profileData.about}
-                    onChange={(e) => handleInputChange("about", e.target.value)}
-                    disabled={!isEditing || isSaving}
-                  />
-                </div>
               </TabsContent>
-
+{/* 
               <TabsContent value="professional" className="space-y-6 pt-4">
                 <div className="space-y-2">
                   <Label htmlFor="services">Services Offered</Label>
@@ -311,8 +369,8 @@ export function DoctorProfile() {
                     onCheckedChange={(checked) => handleInputChange("isAvailable", checked)}
                     disabled={!isEditing || isSaving}
                   />
-                </div>
-              </TabsContent>
+                </div> */}
+              {/* </TabsContent> */}
             </Tabs>
           </CardContent>
         </Card>
