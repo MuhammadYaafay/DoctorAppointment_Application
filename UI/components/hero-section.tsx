@@ -26,7 +26,7 @@ export function HeroSection() {
           <div className="relative">
             <div className="aspect-video md:aspect-square rounded-2xl overflow-hidden border border-border/40 shadow-xl">
               <img
-                src="/placeholder.svg?height=600&width=600"
+                src="https://images.unsplash.com/photo-1638202993928-7267aad84c31?q=80&w=1374&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
                 alt="Doctor with patient"
                 className="w-full h-full object-cover"
               />

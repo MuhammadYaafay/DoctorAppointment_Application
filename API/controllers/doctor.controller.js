@@ -28,10 +28,10 @@ const getDoctorById = async (req, res) => {
     const [doctors] = await pool.query(
       `SELECT
             d.id, d.specialization AS specialty, d.experience, d.fee,
-            d.rating, d.reviews_count AS reviews,
-            d.availability, d.about, d.services, d.languages,
-            d.education, d.certifications, d.location,
-            d.available_slots AS availableSlots,
+            COALESCE(d.rating, 0) AS rating, COALESCE(d.reviews_count, 0) AS reviews,
+            COALESCE(d.availability, '') AS availability, COALESCE(d.about, '') AS about, COALESCE(d.services, '') AS services, COALESCE(d.languages, '') AS languages,
+            COALESCE(d.education, '') AS education, COALESCE(d.certifications, '') AS certifications, COALESCE(d.location, '') AS location,
+            COALESCE(d.available_slots, '') AS availableSlots,
             u.name, u.email,
             u.image_url AS image
         FROM doctors d
