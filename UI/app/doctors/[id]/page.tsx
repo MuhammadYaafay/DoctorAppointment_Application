@@ -39,10 +39,7 @@ interface DoctorData{
     state: string,
     zipCode: string
   }| null,
-  available_slots?: {
-    day: string,
-    slots: string[]
-  }[]| null,
+  available_slots?: { date: string; slots: string[] }[] | null,
   is_approved: boolean
   availability?: string| null;
   languages?: string[] | null;

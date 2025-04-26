@@ -9,20 +9,20 @@ interface Doctor {
   rating: number
   reviews: number
   fee: number
-  image: string
-  availability: string
-  languages?: string[]  // Made optional
+  image?: string | null
+  availability?: string
+  languages?: string[]
   education?: Array<{ degree: string; institution: string; year: string }>
-  certifications?: string[]  // Made optional
-  about: string
+  certifications?: string[]
+  about?: string
   services?: string[]
-  location: {
+  location?: {
     address: string
     city: string
     state: string
     zipCode: string
   }
-  availableSlots?: Array<{ date: string; slots: string[] }>
+  available_slots?: { date: string; slots: string[] }[] | null;
 }
 
 interface DoctorProfileProps {
@@ -30,12 +30,18 @@ interface DoctorProfileProps {
 }
 
 export function DoctorProfile({ doctor }: DoctorProfileProps) {
-  // Safe defaults for arrays
+  // Use available_slots directly as an array
+  const slots = doctor.available_slots || [];
+  // Get the first available slot
+  const nextAvailableSlot = slots.length > 0 && slots[0].slots?.length > 0 
+    ? slots[0].slots[0]
+    : "No availability"
+
+  // Safe defaults for all optional fields
   const certifications = doctor.certifications || []
   const languages = doctor.languages || []
   const services = doctor.services || []
   const education = doctor.education || []
-  const availableSlots = doctor.availableSlots || []
 
   return (
     <div className="rounded-xl border border-border/40 bg-card overflow-hidden">
@@ -79,13 +85,15 @@ export function DoctorProfile({ doctor }: DoctorProfileProps) {
                 </div>
               </div>
 
-              <div className="flex items-center">
-                <Award className="h-5 w-5 text-teal-500 mr-1" />
-                <div>
-                  <span className="font-medium">{certifications.length}</span>
-                  <span className="text-muted-foreground text-sm ml-1">certifications</span>
+              {certifications.length > 0 && (
+                <div className="flex items-center">
+                  <Award className="h-5 w-5 text-teal-500 mr-1" />
+                  <div>
+                    <span className="font-medium">{certifications.length}</span>
+                    <span className="text-muted-foreground text-sm ml-1">certifications</span>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {languages.length > 0 && (
                 <div className="flex items-center">
@@ -108,7 +116,7 @@ export function DoctorProfile({ doctor }: DoctorProfileProps) {
                 <div className="text-right">
                   <span className="text-sm text-muted-foreground">Next Available</span>
                   <p className="font-medium text-teal-500">
-                    {availableSlots[0]?.slots[0] || "No availability"}
+                    {nextAvailableSlot}
                   </p>
                 </div>
               </div>

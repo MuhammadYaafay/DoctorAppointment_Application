@@ -16,7 +16,20 @@ const getAllDoctors = async (req, res) => {
       JOIN users u ON d.user_id = u.id
       WHERE d.is_approved = 1`
     );
-    res.json(doctors);
+    // Ensure available_slots is always an array
+    const normalizedDoctors = doctors.map(doc => {
+      let available_slots = [];
+      if (doc.availableSlots) {
+        try {
+          available_slots = JSON.parse(doc.availableSlots);
+          if (!Array.isArray(available_slots)) available_slots = [];
+        } catch {
+          available_slots = [];
+        }
+      }
+      return { ...doc, available_slots };
+    });
+    res.json(normalizedDoctors);
   } catch (error) {
     console.error("get doctors error", error);
     res.status(500).json({ message: "Internal Server Error" });
@@ -44,7 +57,19 @@ const getDoctorById = async (req, res) => {
       return res.status(404).json({ message: "Doctor not found" });
     }
 
-    res.json(doctors[0]);
+    // Ensure available_slots is always an array
+    let doc = doctors[0];
+    let available_slots = [];
+    if (doc.availableSlots) {
+      try {
+        available_slots = JSON.parse(doc.availableSlots);
+        if (!Array.isArray(available_slots)) available_slots = [];
+      } catch {
+        available_slots = [];
+      }
+    }
+    doc.available_slots = available_slots;
+    res.json(doc);
   } catch (error) {
     console.error("get doctor by id error", error);
     res.status(500).json({ message: "Internal Server Error" });

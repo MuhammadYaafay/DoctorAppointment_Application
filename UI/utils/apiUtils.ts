@@ -28,29 +28,36 @@ export async function apiRequest<T>(
     requestHeaders.Authorization = `Bearer ${token}`;
   }
 
+  console.log("API Request:", {
+    endpoint,
+    method,
+    body,
+    headers,
+    url: `${API_URL}${endpoint}`
+  });
+
   try {
     const response = await fetch(`${API_URL}${endpoint}`, {
       method,
-      headers: requestHeaders,
+      headers: {
+        "Content-Type": "application/json",
+        ...headers,
+        ...(authenticated && {
+          Authorization: `Bearer ${localStorage.getItem("token")}`
+        })
+      },
       body: body ? JSON.stringify(body) : undefined,
     });
-
+    
     if (!response.ok) {
-      let errorData;
-      try {
-        errorData = await response.json();
-      } catch (e) {
-        errorData = {};
-      }
-
-      // Handle 401 Unauthorized errors specifically
-      if (response.status === 401) {
-        throw new Error("Unauthorized");
-      }
-
-      throw new Error(
-        errorData.message || errorData.msg || `API Error: ${response.status} ${response.statusText}`
-      );
+      const errorData = await response.json().catch(() => ({}));
+      console.error("API Error Details:", {
+        status: response.status,
+        statusText: response.statusText,
+        errorData,
+        url: response.url
+      });
+      throw new Error(errorData.message || `API Error: ${response.status} ${response.statusText}`);
     }
 
     return await response.json();
