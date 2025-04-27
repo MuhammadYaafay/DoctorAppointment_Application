@@ -3,7 +3,7 @@ import { getAuthToken } from "./authUtils";
 const API_URL = process.env.API_URL || "http://localhost:5000";
 
 interface ApiOptions {
-  method?: "GET" | "POST" | "PUT" | "DELETE";
+  method?: "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
   body?: any;
   headers?: Record<string, string>;
   authenticated?: boolean;

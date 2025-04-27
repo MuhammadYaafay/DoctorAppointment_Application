@@ -1,5 +1,31 @@
 const pool = require("../config/db");
 
+const getAllDoctors = async (req, res) => {
+  try {
+    const [doctors] = await pool.query(`
+      SELECT 
+        d.id,
+        u.name,
+        d.specialization AS specialty,
+        u.email,
+        u.phone,
+        d.experience,
+        d.rating,
+        d.reviews_count,
+        d.fee,
+        u.image_url AS image,
+        d.is_approved
+      FROM doctors d
+      INNER JOIN users u ON d.user_id = u.id
+    `);
+
+    res.json(doctors);
+  } catch (error) {
+    console.error("Get all doctors error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 // Get dashboard statistics
 const getDashboardStats = async (req, res) => {
   try {
@@ -126,6 +152,27 @@ const approveDoctorRegistration = async (req, res) => {
   }
 };
 
+// reject a doctor's registration
+const rejectDoctorRegistration = async (req, res) => {
+  try {
+    const doctorId = req.params.id;
+
+    const [doctors] = await pool.query("SELECT user_id FROM doctors WHERE id = ?", [doctorId]);
+
+    if (doctors.length === 0) {
+      return res.status(404).json({ message: "Doctor not found" });
+    }
+    await pool.query("DELETE FROM users WHERE id = ?", [doctors[0].user_id]);
+
+    await pool.query("DELETE FROM doctors WHERE user_id = ?", [doctors[0].user_id]);
+
+    res.json({ message: "Doctor and user rejected successfully" });
+  } catch (error) {
+    console.error("Reject doctor error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
 // Get all users except admins
 const getAllUsers = async (req, res) => {
   try {
@@ -203,9 +250,11 @@ const cancelAppointmentByAdmin = async (req, res) => {
 };
 
 module.exports = {
+  getAllDoctors,
   getDashboardStats,
   getPendingDoctors,
   approveDoctorRegistration,
+  rejectDoctorRegistration,
   getAllUsers,
   getAllAppointments,
   cancelAppointmentByAdmin,

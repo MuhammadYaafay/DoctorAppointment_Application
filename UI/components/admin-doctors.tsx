@@ -1,110 +1,122 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Search, Plus, Edit, Trash2 } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Badge } from "@/components/ui/badge"
-import { Switch } from "@/components/ui/switch"
-import { AddDoctorDialog } from "@/components/add-doctor-dialog"
+import { useState, useEffect } from "react";
+import { Search, Plus, Edit, Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { AddDoctorDialog } from "@/components/add-doctor-dialog";
+import { useAuth } from "@/context/authContext";
+import { apiRequest } from "@/utils/apiUtils";
 
-// Sample doctors data
-const doctorsData = [
-  {
-    id: "1",
-    name: "Dr. Sarah Johnson",
-    specialty: "Cardiology",
-    email: "sarah.johnson@example.com",
-    phone: "+1 (555) 123-4567",
-    experience: 12,
-    rating: 4.9,
-    reviews: 124,
-    fee: 150,
-    image: "/placeholder.svg?height=100&width=100",
-    isActive: true,
-  },
-  {
-    id: "2",
-    name: "Dr. Michael Chen",
-    specialty: "Neurology",
-    email: "michael.chen@example.com",
-    phone: "+1 (555) 234-5678",
-    experience: 15,
-    rating: 4.8,
-    reviews: 98,
-    fee: 180,
-    image: "/placeholder.svg?height=100&width=100",
-    isActive: true,
-  },
-  {
-    id: "3",
-    name: "Dr. Emily Rodriguez",
-    specialty: "Pediatrics",
-    email: "emily.rodriguez@example.com",
-    phone: "+1 (555) 345-6789",
-    experience: 10,
-    rating: 4.7,
-    reviews: 156,
-    fee: 120,
-    image: "/placeholder.svg?height=100&width=100",
-    isActive: true,
-  },
-  {
-    id: "4",
-    name: "Dr. James Wilson",
-    specialty: "Orthopedics",
-    email: "james.wilson@example.com",
-    phone: "+1 (555) 456-7890",
-    experience: 18,
-    rating: 4.9,
-    reviews: 210,
-    fee: 200,
-    image: "/placeholder.svg?height=100&width=100",
-    isActive: false,
-  },
-  {
-    id: "5",
-    name: "Dr. Lisa Thompson",
-    specialty: "Dermatology",
-    email: "lisa.thompson@example.com",
-    phone: "+1 (555) 567-8901",
-    experience: 8,
-    rating: 4.6,
-    reviews: 87,
-    fee: 160,
-    image: "/placeholder.svg?height=100&width=100",
-    isActive: true,
-  },
-]
+interface doctorsData {
+  id: string;
+  name: string;
+  specialty: string;
+  email: string;
+  phone: string;
+  experience: number;
+  rating: number;
+  reviews: number;
+  fee: number;
+  image: string;
+  is_approved: boolean;
+}
 
 export function AdminDoctors() {
-  const [searchQuery, setSearchQuery] = useState("")
-  const [showAddDoctorDialog, setShowAddDoctorDialog] = useState(false)
-  const [doctors, setDoctors] = useState(doctorsData)
+  const { user } = useAuth();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showAddDoctorDialog, setShowAddDoctorDialog] = useState(false);
+  const [doctors, setDoctors] = useState<doctorsData[]>([]);
 
+  // Fetch doctors from the backend
+  useEffect(() => {
+    const fetchDoctors = async () => {
+      try {
+        const response = await apiRequest<doctorsData[]>("/api/admin/doctors", {
+          method: "GET",
+          authenticated: true,
+        });
+        setDoctors(response);
+      } catch (error) {
+        console.error("Error fetching doctors:", error);
+      }
+    };
+    fetchDoctors();
+  }, []);
+
+  // Filter doctors based on search query
   const filteredDoctors = doctors.filter(
     (doctor) =>
       doctor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       doctor.specialty.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      doctor.email.toLowerCase().includes(searchQuery.toLowerCase()),
-  )
+      doctor.email.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
-  const toggleDoctorStatus = (doctorId: string) => {
-    setDoctors(doctors.map((doctor) => (doctor.id === doctorId ? { ...doctor, isActive: !doctor.isActive } : doctor)))
-  }
+  // Handle approving a doctor
+  const handleApproveDoctor = async (doctorId: string) => {
+    try {
+      const response = await apiRequest<doctorsData>(
+        `/api/admin/doctors/${doctorId}/approve`,
+        {
+          authenticated: true,
+          method: "PATCH",
+        }
+      );
 
-  const handleDeleteDoctor = (doctorId: string) => {
-    setDoctors(doctors.filter((doctor) => doctor.id !== doctorId))
-  }
+      if (response) {
+        setDoctors(
+          doctors.map((doctor) =>
+            doctor.id === doctorId
+              ? { ...doctor, is_approved: true } // Directly set to true (approve)
+              : doctor
+          )
+        );
+      } else {
+        console.error("Error approving doctor");
+      }
+    } catch (error) {
+      console.error("Error approving doctor:", error);
+    }
+  };
+
+  // Handle deleting a doctor
+  const handleDeleteDoctor = async (doctorId: string) => {
+    try {
+      const response = await apiRequest<doctorsData>(
+        `/api/admin/doctors/${doctorId}/reject`,
+        {
+          authenticated: true,
+          method: "DELETE",
+        }
+      );
+
+      if (response) {
+        setDoctors(doctors.filter((doctor) => doctor.id !== doctorId));
+      } else {
+        console.error("Error deleting doctor");
+      }
+    } catch (error) {
+      console.error("Error deleting doctor:", error);
+    }
+  };
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold mb-2">Manage Doctors</h1>
-          <p className="text-muted-foreground">Add, edit, or remove doctors from the system</p>
+          <p className="text-muted-foreground">
+            Add, edit, or remove doctors from the system
+          </p>
         </div>
         <Button
           className="bg-teal-600 hover:bg-teal-700 flex items-center gap-2"
@@ -138,12 +150,24 @@ export function AdminDoctors() {
               <table className="w-full caption-bottom text-sm">
                 <thead className="[&_tr]:border-b">
                   <tr className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
-                    <th className="h-12 px-4 text-left align-middle font-medium">Doctor</th>
-                    <th className="h-12 px-4 text-left align-middle font-medium">Specialty</th>
-                    <th className="h-12 px-4 text-left align-middle font-medium">Contact</th>
-                    <th className="h-12 px-4 text-left align-middle font-medium">Fee</th>
-                    <th className="h-12 px-4 text-left align-middle font-medium">Status</th>
-                    <th className="h-12 px-4 text-left align-middle font-medium">Actions</th>
+                    <th className="h-12 px-4 text-left align-middle font-medium">
+                      Doctor
+                    </th>
+                    <th className="h-12 px-4 text-left align-middle font-medium">
+                      Specialty
+                    </th>
+                    <th className="h-12 px-4 text-left align-middle font-medium">
+                      Contact
+                    </th>
+                    <th className="h-12 px-4 text-left align-middle font-medium">
+                      Fee
+                    </th>
+                    <th className="h-12 px-4 text-left align-middle font-medium">
+                      Status
+                    </th>
+                    <th className="h-12 px-4 text-left align-middle font-medium">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="[&_tr:last-child]:border-0">
@@ -156,13 +180,19 @@ export function AdminDoctors() {
                         <td className="p-4 align-middle">
                           <div className="flex items-center gap-3">
                             <Avatar>
-                              <AvatarImage src={doctor.image} alt={doctor.name} />
-                              <AvatarFallback>{doctor.name.charAt(0)}</AvatarFallback>
+                              <AvatarImage
+                                src={doctor.image}
+                                alt={doctor.name}
+                              />
+                              <AvatarFallback>
+                                {doctor.name.charAt(0)}
+                              </AvatarFallback>
                             </Avatar>
                             <div>
                               <p className="font-medium">{doctor.name}</p>
                               <p className="text-xs text-muted-foreground">
-                                {doctor.experience} years exp • {doctor.rating} rating
+                                {doctor.experience} years exp • {doctor.rating}{" "}
+                                rating
                               </p>
                             </div>
                           </div>
@@ -170,33 +200,44 @@ export function AdminDoctors() {
                         <td className="p-4 align-middle">{doctor.specialty}</td>
                         <td className="p-4 align-middle">
                           <p className="text-xs">{doctor.email}</p>
-                          <p className="text-xs text-muted-foreground">{doctor.phone}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {doctor.phone}
+                          </p>
                         </td>
                         <td className="p-4 align-middle">${doctor.fee}</td>
+
+                        {/* STATUS COLUMN */}
                         <td className="p-4 align-middle">
-                          <div className="flex items-center space-x-2">
-                            <Switch checked={doctor.isActive} onCheckedChange={() => toggleDoctorStatus(doctor.id)} />
-                            <Badge
-                              variant="outline"
-                              className={
-                                doctor.isActive
-                                  ? "bg-green-500/10 text-green-500 hover:bg-green-500/20 hover:text-green-500"
-                                  : "bg-red-500/10 text-red-500 hover:bg-red-500/20 hover:text-red-500"
-                              }
-                            >
-                              {doctor.isActive ? "Active" : "Inactive"}
-                            </Badge>
-                          </div>
+                          <Badge
+                            variant="outline"
+                            className={
+                              doctor.is_approved
+                                ? "bg-green-500/10 text-green-500 hover:bg-green-500/20 hover:text-green-500"
+                                : "bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20 hover:text-yellow-500"
+                            }
+                          >
+                            {doctor.is_approved ? "Approved" : "Pending"}
+                          </Badge>
                         </td>
+
+                        {/* ACTIONS COLUMN */}
                         <td className="p-4 align-middle">
                           <div className="flex items-center gap-2">
-                            <Button variant="outline" size="icon" className="h-8 w-8">
-                              <Edit className="h-4 w-4" />
-                              <span className="sr-only">Edit</span>
-                            </Button>
+                            {/* Show Approve button only if not approved */}
+                            {!doctor.is_approved && (
+                              <Button
+                                size="sm"
+                                className="bg-green-500 hover:bg-green-600 text-white"
+                                onClick={() =>
+                                  handleApproveDoctor(doctor.id)
+                                }
+                              >
+                                Approve
+                              </Button>
+                            )}
                             <Button
-                              variant="outline"
                               size="icon"
+                              variant="outline"
                               className="h-8 w-8 text-red-500 hover:text-red-500 hover:bg-red-500/10"
                               onClick={() => handleDeleteDoctor(doctor.id)}
                             >
@@ -221,7 +262,10 @@ export function AdminDoctors() {
         </CardContent>
       </Card>
 
-      <AddDoctorDialog open={showAddDoctorDialog} onOpenChange={setShowAddDoctorDialog} />
+      <AddDoctorDialog
+        open={showAddDoctorDialog}
+        onOpenChange={setShowAddDoctorDialog}
+      />
     </div>
-  )
+  );
 }
