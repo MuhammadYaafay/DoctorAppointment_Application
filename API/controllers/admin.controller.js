@@ -6,16 +6,13 @@ const getDashboardStats = async (req, res) => {
     // Total appointments and their statuses
     const [appointments] = await pool.query(`
       SELECT 
-        COUNT(*) AS total_appointments,
-        SUM(IF(status = 'confirmed', 1, 0)) AS completed_appointments,
-        SUM(IF(status = 'cancelled', 1, 0)) AS cancelled_appointments,
-        SUM(IF(status = 'pending', 1, 0)) AS pending_appointments
+        COUNT(*) AS totalAppointments
       FROM appointments
     `);
 
     // Total earnings from completed payments
     const [earnings] = await pool.query(`
-      SELECT SUM(amount) AS total_earnings
+      SELECT SUM(amount) AS totalEarnings
       FROM payments
       WHERE status = 'completed'
     `);
@@ -32,10 +29,9 @@ const getDashboardStats = async (req, res) => {
     // Recent appointments
     const [recentAppointments] = await pool.query(`
       SELECT 
-        a.id, a.appointment_date, a.appointment_time, a.status,
-        u.name AS patient_name,
-        d.specialization,
-        doc.name AS doctor_name
+        a.id, a.appointment_date AS date, a.appointment_time AS time, a.status,
+        u.name AS patientName,
+        doc.name AS doctorName
       FROM appointments a
       INNER JOIN users u ON a.user_id = u.id
       INNER JOIN doctors d ON a.doctor_id = d.id
@@ -44,16 +40,39 @@ const getDashboardStats = async (req, res) => {
       LIMIT 10
     `);
 
+    // Top performing doctors
+    const [topDoctors] = await pool.query(`
+      SELECT 
+        d.id, 
+        u.name, 
+        d.specialization AS specialty,
+        COUNT(a.id) AS appointments,
+        IFNULL(AVG(r.rating), 0) AS rating
+      FROM doctors d
+      INNER JOIN users u ON d.user_id = u.id
+      LEFT JOIN appointments a ON d.id = a.doctor_id
+      LEFT JOIN reviews r ON d.id = r.doctor_id
+      GROUP BY d.id
+      ORDER BY appointments DESC
+      LIMIT 5
+    `);
+
+    const userCount = users.reduce((acc, curr) => {
+      acc[curr.role] = curr.count;
+      return acc;
+    }, {});
+
     res.json({
-      statistics: {
-        appointment: appointments[0],
-        earning: earnings[0]?.total_earnings || 0,
-        userCount: users.reduce((acc, curr) => {
-          acc[curr.role] = curr.count;
-          return acc;
-        }, {}),
-      },
+      totalDoctors: userCount.doctor || 0,
+      totalPatients: userCount.patient || 0,
+      totalAppointments: appointments[0]?.totalAppointments || 0,
+      revenue: earnings[0]?.totalEarnings || 0,
+      doctorsGrowth: 10, // dummy value, you can calculate based on previous months data
+      patientsGrowth: 8, // dummy value
+      appointmentsGrowth: 12, // dummy value
+      revenueGrowth: 15, // dummy value
       recentAppointments,
+      topDoctors,
     });
   } catch (error) {
     console.error("Get dashboard stats error:", error);

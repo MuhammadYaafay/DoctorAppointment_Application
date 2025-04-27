@@ -1,52 +1,21 @@
 import { DoctorCard } from "@/components/doctor-card"
+import { useAuth } from "@/context/authContext";
+import { apiRequest } from "@/utils/apiUtils";
+import { useEffect, useState } from "react"
+import { toast } from "sonner";
 
-// Sample related doctors data
-const relatedDoctorsData = [
-  {
-    id: "2",
-    name: "Dr. Michael Chen",
-    specialty: "Cardiology",
-    experience: 15,
-    rating: 4.8,
-    reviews: 98,
-    fee: 180,
-    image: "/placeholder.svg?height=300&width=300",
-    availability: "Available Tomorrow",
-  },
-  {
-    id: "5",
-    name: "Dr. Lisa Thompson",
-    specialty: "Cardiology",
-    experience: 8,
-    rating: 4.6,
-    reviews: 87,
-    fee: 160,
-    image: "/placeholder.svg?height=300&width=300",
-    availability: "Available Today",
-  },
-  {
-    id: "9",
-    name: "Dr. Richard Brown",
-    specialty: "Cardiology",
-    experience: 20,
-    rating: 4.9,
-    reviews: 145,
-    fee: 200,
-    image: "/placeholder.svg?height=300&width=300",
-    availability: "Available in 2 Days",
-  },
-  {
-    id: "12",
-    name: "Dr. Jennifer Lee",
-    specialty: "Cardiology",
-    experience: 10,
-    rating: 4.7,
-    reviews: 112,
-    fee: 170,
-    image: "/placeholder.svg?height=300&width=300",
-    availability: "Available Today",
-  },
-]
+
+interface Doctor {
+  id: string;
+  name: string;
+  specialty: string;
+  experience: number;
+  fee: number;
+  rating: number;
+  reviews: number;
+  availability: string[];
+  image?: string;
+}
 
 interface RelatedDoctorsProps {
   currentDoctorId: string
@@ -54,8 +23,31 @@ interface RelatedDoctorsProps {
 }
 
 export function RelatedDoctors({ currentDoctorId, specialty }: RelatedDoctorsProps) {
+  const {user} = useAuth()
+  const [isLoading, setIsLoading] = useState(true)
+  const [relatedDoctors, setRelatedDoctors] = useState<Doctor[]>([])
   // Filter out the current doctor
-  const filteredDoctors = relatedDoctorsData.filter((doctor) => doctor.id !== currentDoctorId)
+  const filteredDoctors = relatedDoctors.filter((doctor) => doctor.id !== currentDoctorId)
+
+  useEffect(() => {
+    const fetchDoctorData = async () => {
+      try {
+        const response = (await apiRequest("/api/doctor/", {
+          authenticated: true,
+        })) as Doctor[];
+        setRelatedDoctors(response);
+      } catch (error) {
+        toast.error("Failed to load doctors");
+        console.error("Error fetching doctors:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (user) {
+      fetchDoctorData();
+    }
+  }, [user]);
 
   return (
     <div>

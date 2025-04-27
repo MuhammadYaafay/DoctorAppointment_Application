@@ -60,3 +60,14 @@ CREATE TABLE
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (appointment_id) REFERENCES appointments (id) ON DELETE CASCADE
     );
+
+    CREATE TABLE reviews (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    doctor_id INT NOT NULL,
+    user_id INT NOT NULL,
+    rating DECIMAL(2,1) NOT NULL CHECK (rating >= 0 AND rating <= 5),
+    comment TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (doctor_id) REFERENCES doctors(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);

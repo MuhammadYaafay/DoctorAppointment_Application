@@ -1,102 +1,63 @@
 import { Users, Calendar, UserRound, DollarSign, TrendingUp, Activity } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { useEffect, useState } from "react";
+import { useAuth } from "@/context/authContext";
+import { apiRequest } from "@/utils/apiUtils";
 
-// Sample data for the dashboard
-const dashboardData = {
-  totalDoctors: 48,
-  totalPatients: 1250,
-  totalAppointments: 3567,
-  revenue: 125000,
-  doctorsGrowth: 12,
-  patientsGrowth: 18,
-  appointmentsGrowth: 24,
-  revenueGrowth: 15,
-  recentAppointments: [
-    {
-      id: "1",
-      patientName: "John Smith",
-      doctorName: "Dr. Sarah Johnson",
-      date: "2023-10-15",
-      time: "09:00 AM",
-      status: "confirmed",
-    },
-    {
-      id: "2",
-      patientName: "Emily Davis",
-      doctorName: "Dr. Michael Chen",
-      date: "2023-10-15",
-      time: "10:30 AM",
-      status: "confirmed",
-    },
-    {
-      id: "3",
-      patientName: "Robert Wilson",
-      doctorName: "Dr. Emily Rodriguez",
-      date: "2023-10-15",
-      time: "11:45 AM",
-      status: "pending",
-    },
-    {
-      id: "4",
-      patientName: "Sarah Johnson",
-      doctorName: "Dr. James Wilson",
-      date: "2023-10-16",
-      time: "09:15 AM",
-      status: "confirmed",
-    },
-    {
-      id: "5",
-      patientName: "Michael Brown",
-      doctorName: "Dr. Lisa Thompson",
-      date: "2023-10-16",
-      time: "02:00 PM",
-      status: "cancelled",
-    },
-  ],
-  topDoctors: [
-    {
-      id: "1",
-      name: "Dr. Sarah Johnson",
-      specialty: "Cardiology",
-      appointments: 145,
-      rating: 4.9,
-    },
-    {
-      id: "2",
-      name: "Dr. Michael Chen",
-      specialty: "Neurology",
-      appointments: 132,
-      rating: 4.8,
-    },
-    {
-      id: "3",
-      name: "Dr. Emily Rodriguez",
-      specialty: "Pediatrics",
-      appointments: 128,
-      rating: 4.7,
-    },
-    {
-      id: "4",
-      name: "Dr. James Wilson",
-      specialty: "Orthopedics",
-      appointments: 120,
-      rating: 4.9,
-    },
-    {
-      id: "5",
-      name: "Dr. Lisa Thompson",
-      specialty: "Dermatology",
-      appointments: 115,
-      rating: 4.6,
-    },
-  ],
+interface dashboardData{
+  totalDoctors: number;
+  totalPatients: number;
+  totalAppointments: number;
+  revenue: number;
+  doctorsGrowth: number;
+  patientsGrowth: number;
+  appointmentsGrowth: number;
+  revenueGrowth: number;
+  recentAppointments: {
+    id: string;
+    patientName: string;
+    doctorName: string;
+    date: string;
+    time: string;
+    status: string;
+  }[];
+  topDoctors: {
+    id: string;
+    name: string;
+    specialty: string;
+    appointments: number;
+    rating: number;
+  }[];
 }
 
 export function AdminDashboard() {
+  const {user} = useAuth();
+  // const [doctor, setDoctor] = useState<dashboardData["topDoctors"][]>([]);
+  // const [appointment, setAppointment] = useState<dashboardData["recentAppointments"][]>([]);
+  const [data, setData] = useState<dashboardData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const formatDate = (dateString: string) => {
     const options: Intl.DateTimeFormatOptions = { year: "numeric", month: "long", day: "numeric" }
     return new Date(dateString).toLocaleDateString(undefined, options)
   }
+
+  const fetchDashboardData = async () => {
+    try {
+      const data = await apiRequest<dashboardData>('/api/admin/dashboard', {
+        method: "GET",
+        authenticated: true,
+      });
+      setData(data);
+      setIsLoading(false);
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -112,10 +73,10 @@ export function AdminDashboard() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{dashboardData.totalDoctors}</div>
+            <div className="text-2xl font-bold">{data?.totalDoctors}</div>
             <p className="text-xs text-muted-foreground flex items-center mt-1">
               <TrendingUp className="h-3 w-3 mr-1 text-green-500" />
-              <span className="text-green-500">{dashboardData.doctorsGrowth}%</span>
+              <span className="text-green-500">{data?.doctorsGrowth}%</span>
               <span className="ml-1">from last month</span>
             </p>
           </CardContent>
@@ -127,10 +88,10 @@ export function AdminDashboard() {
             <UserRound className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{dashboardData.totalPatients}</div>
+            <div className="text-2xl font-bold">{data?.totalPatients}</div>
             <p className="text-xs text-muted-foreground flex items-center mt-1">
               <TrendingUp className="h-3 w-3 mr-1 text-green-500" />
-              <span className="text-green-500">{dashboardData.patientsGrowth}%</span>
+              <span className="text-green-500">{data?.patientsGrowth}%</span>
               <span className="ml-1">from last month</span>
             </p>
           </CardContent>
@@ -142,10 +103,10 @@ export function AdminDashboard() {
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{dashboardData.totalAppointments}</div>
+            <div className="text-2xl font-bold">{data?.totalAppointments}</div>
             <p className="text-xs text-muted-foreground flex items-center mt-1">
               <TrendingUp className="h-3 w-3 mr-1 text-green-500" />
-              <span className="text-green-500">{dashboardData.appointmentsGrowth}%</span>
+              <span className="text-green-500">{data?.appointmentsGrowth}%</span>
               <span className="ml-1">from last month</span>
             </p>
           </CardContent>
@@ -157,10 +118,10 @@ export function AdminDashboard() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${dashboardData.revenue.toLocaleString()}</div>
+            <div className="text-2xl font-bold">${data?.revenue.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground flex items-center mt-1">
               <TrendingUp className="h-3 w-3 mr-1 text-green-500" />
-              <span className="text-green-500">{dashboardData.revenueGrowth}%</span>
+              <span className="text-green-500">{data?.revenueGrowth}%</span>
               <span className="ml-1">from last month</span>
             </p>
           </CardContent>
@@ -175,7 +136,7 @@ export function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {dashboardData.recentAppointments.map((appointment) => (
+              {data?.recentAppointments.map((appointment) => (
                 <div
                   key={appointment.id}
                   className="flex items-center justify-between border-b border-border/40 pb-4 last:border-0 last:pb-0"
@@ -213,7 +174,7 @@ export function AdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {dashboardData.topDoctors.map((doctor) => (
+              {data?.topDoctors.map((doctor) => (
                 <div
                   key={doctor.id}
                   className="flex items-center justify-between border-b border-border/40 pb-4 last:border-0 last:pb-0"

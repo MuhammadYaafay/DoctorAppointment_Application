@@ -1,5 +1,5 @@
 const express = require("express");
-const { verifyToken, isAdmin, isAdminUser } = require("../middlewares/auth.middleware");
+const { verifyToken, isAdmin } = require("../middlewares/auth.middleware");
 const {
   getDashboardStats,
   getPendingDoctors,
