@@ -10,7 +10,8 @@ const {
   getAllAppointments,
   cancelAppointmentByAdmin,
   confirmAppointmentByAdmin,
-  completeAppointmentByAdmin
+  completeAppointmentByAdmin,
+  getAllPatients
 } = require("../controllers/admin.controller");
 
 const router = express.Router();
@@ -20,6 +21,9 @@ router.use(verifyToken, isAdmin);
 
 //Get all doctors
 router.get('/doctors', getAllDoctors);
+
+//Get all patients
+router.get('/patients', getAllPatients);
 
 //dashboard and stats
 router.get('/dashboard', getDashboardStats);

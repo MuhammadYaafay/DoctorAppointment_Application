@@ -8,6 +8,7 @@ import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { apiRequest } from "@/utils/apiUtils"
 
 export function AdminSettings() {
   const [generalSettings, setGeneralSettings] = useState({
@@ -22,17 +23,17 @@ export function AdminSettings() {
   })
 
   const [emailSettings, setEmailSettings] = useState({
-    smtpServer: "smtp.example.com",
+    smtpServer: "admin.example.com",
     smtpPort: "587",
-    smtpUsername: "notifications@medibook.com",
+    smtpUsername: "notifications@admin.com",
     smtpPassword: "••••••••••••",
-    senderName: "MediBook Notifications",
-    senderEmail: "notifications@medibook.com",
+    senderName: "Admin Notifications",
+    senderEmail: "notifications@admin.com",
     enableEmailNotifications: true,
   })
 
   const [paymentSettings, setPaymentSettings] = useState({
-    currency: "USD",
+    currency: "PKR",
     enableOnlinePayments: true,
     paymentGateway: "stripe",
     stripePublicKey: "pk_test_••••••••••••••••••••••••••••",

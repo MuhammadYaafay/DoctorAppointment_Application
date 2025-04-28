@@ -1,99 +1,44 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Search, Mail, Phone, Calendar } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
+import { apiRequest } from "@/utils/apiUtils"
 
-// Sample patients data
-const patientsData = [
-  {
-    id: "1",
-    name: "John Smith",
-    email: "john.smith@example.com",
-    phone: "+1 (555) 123-4567",
-    dateOfBirth: "1985-06-12",
-    gender: "Male",
-    bloodGroup: "O+",
-    address: "123 Main St, New York, NY 10001",
-    registeredDate: "2023-01-15",
-    totalAppointments: 8,
-    image: "/placeholder.svg?height=100&width=100",
-  },
-  {
-    id: "2",
-    name: "Emily Davis",
-    email: "emily.davis@example.com",
-    phone: "+1 (555) 234-5678",
-    dateOfBirth: "1990-03-24",
-    gender: "Female",
-    bloodGroup: "A+",
-    address: "456 Park Ave, New York, NY 10022",
-    registeredDate: "2023-02-20",
-    totalAppointments: 5,
-    image: "/placeholder.svg?height=100&width=100",
-  },
-  {
-    id: "3",
-    name: "Robert Wilson",
-    email: "robert.wilson@example.com",
-    phone: "+1 (555) 345-6789",
-    dateOfBirth: "1978-11-08",
-    gender: "Male",
-    bloodGroup: "B-",
-    address: "789 Broadway, New York, NY 10003",
-    registeredDate: "2023-03-05",
-    totalAppointments: 12,
-    image: "/placeholder.svg?height=100&width=100",
-  },
-  {
-    id: "4",
-    name: "Sarah Johnson",
-    email: "sarah.johnson@example.com",
-    phone: "+1 (555) 456-7890",
-    dateOfBirth: "1992-07-17",
-    gender: "Female",
-    bloodGroup: "AB+",
-    address: "321 5th Ave, New York, NY 10016",
-    registeredDate: "2023-01-30",
-    totalAppointments: 3,
-    image: "/placeholder.svg?height=100&width=100",
-  },
-  {
-    id: "5",
-    name: "Michael Brown",
-    email: "michael.brown@example.com",
-    phone: "+1 (555) 567-8901",
-    dateOfBirth: "1980-09-22",
-    gender: "Male",
-    bloodGroup: "O-",
-    address: "654 Madison Ave, New York, NY 10022",
-    registeredDate: "2023-04-10",
-    totalAppointments: 7,
-    image: "/placeholder.svg?height=100&width=100",
-  },
-  {
-    id: "6",
-    name: "Jennifer Lee",
-    email: "jennifer.lee@example.com",
-    phone: "+1 (555) 678-9012",
-    dateOfBirth: "1988-12-03",
-    gender: "Female",
-    bloodGroup: "A-",
-    address: "987 Lexington Ave, New York, NY 10021",
-    registeredDate: "2023-02-15",
-    totalAppointments: 6,
-    image: "/placeholder.svg?height=100&width=100",
-  },
-]
+interface patientsData{
+  id: string
+  name: string
+  email: string
+  phone: string
+  registered_date: string
+  total_appointments: number
+  image: string
+}
 
 export function AdminPatients() {
+  const [patients, setPatients] = useState<patientsData[]>([])
   const [searchQuery, setSearchQuery] = useState("")
 
-  const filteredPatients = patientsData.filter(
+  useEffect(() => {
+    const fetchPatients = async () => {
+      try {
+        const response = await apiRequest<patientsData[]>("/api/admin/patients", {
+          method: "GET",
+          authenticated: true,
+        });
+        setPatients(response);
+      } catch (error) {
+        console.error("Error fetching patients:", error);
+      }
+    };
+    fetchPatients();
+  }, []);
+
+  const filteredPatients = patients.filter(
     (patient) =>
       patient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       patient.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -149,8 +94,6 @@ export function AdminPatients() {
                   <tr className="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted">
                     <th className="h-12 px-4 text-left align-middle font-medium">Patient</th>
                     <th className="h-12 px-4 text-left align-middle font-medium">Contact</th>
-                    <th className="h-12 px-4 text-left align-middle font-medium">Age/Gender</th>
-                    <th className="h-12 px-4 text-left align-middle font-medium">Blood Group</th>
                     <th className="h-12 px-4 text-left align-middle font-medium">Registered</th>
                     <th className="h-12 px-4 text-left align-middle font-medium">Appointments</th>
                     <th className="h-12 px-4 text-left align-middle font-medium">Actions</th>
@@ -171,7 +114,6 @@ export function AdminPatients() {
                             </Avatar>
                             <div>
                               <p className="font-medium">{patient.name}</p>
-                              <p className="text-xs text-muted-foreground truncate max-w-[150px]">{patient.address}</p>
                             </div>
                           </div>
                         </td>
@@ -188,24 +130,13 @@ export function AdminPatients() {
                           </div>
                         </td>
                         <td className="p-4 align-middle">
-                          <div className="flex items-center gap-2">
-                            <span>{calculateAge(patient.dateOfBirth)} years</span>
-                            <Badge variant="outline">{patient.gender}</Badge>
-                          </div>
-                        </td>
-                        <td className="p-4 align-middle">
-                          <Badge className="bg-red-500/10 text-red-500 hover:bg-red-500/20 hover:text-red-500">
-                            {patient.bloodGroup}
-                          </Badge>
-                        </td>
-                        <td className="p-4 align-middle">
                           <div className="flex items-center">
                             <Calendar className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
-                            <span className="text-xs">{formatDate(patient.registeredDate)}</span>
+                            <span className="text-xs">{formatDate(patient.registered_date)}</span>
                           </div>
                         </td>
                         <td className="p-4 align-middle">
-                          <Badge variant="secondary">{patient.totalAppointments}</Badge>
+                          <Badge variant="secondary">{patient.total_appointments}</Badge>
                         </td>
                         <td className="p-4 align-middle">
                           <div className="flex items-center gap-2">

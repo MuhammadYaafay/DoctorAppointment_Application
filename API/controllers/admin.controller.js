@@ -177,7 +177,7 @@ const rejectDoctorRegistration = async (req, res) => {
 const getAllUsers = async (req, res) => {
   try {
     const [users] = await pool.query(`
-      SELECT id, name, email, role, created_at
+      SELECT id, name, email, phone, created_at AS registered_date
       FROM users
       WHERE role != 'admin'
       ORDER BY created_at DESC
@@ -235,6 +235,11 @@ const cancelAppointmentByAdmin = async (req, res) => {
     await pool.query(
       'UPDATE appointments, payments SET status = "cancelled", payment_status = "failed" WHERE appointments.id = ? AND payments.appointment_id = ?',
       [appointmentId, appointmentId]
+    );
+
+    await pool.query(
+      'UPDATE users SET total_appointments = total_appointments - 1 WHERE id = ?',
+      [appointments[0].user_id]
     );
 
     res.json({ message: "Appointment cancelled successfully" });
@@ -296,6 +301,11 @@ const completeAppointmentByAdmin = async (req, res) => {
       [appointmentId]
     );
 
+    await pool.query(
+      'UPDATE users SET total_appointments = total_appointments + 1 WHERE id = ?',
+      [appointments[0].user_id]
+    );
+
     res.json({ message: "Appointment completed successfully" });
   } catch (error) {
     console.error("Complete appointment by admin error:", error);
@@ -303,6 +313,21 @@ const completeAppointmentByAdmin = async (req, res) => {
   }
 };
 
+const getAllPatients = async (req, res) => {
+  try {
+    const [patients] = await pool.query(`
+      SELECT id, name, email, phone, created_at AS registered_date, total_appointments
+      FROM users
+      WHERE role = 'patient'
+      ORDER BY created_at DESC
+    `);
+
+    res.json(patients);
+  } catch (error) {
+    console.error("Get all patients error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
 
 
 
@@ -316,5 +341,6 @@ module.exports = {
   getAllAppointments,
   cancelAppointmentByAdmin,
   confirmAppointmentByAdmin,
-  completeAppointmentByAdmin
+  completeAppointmentByAdmin,
+  getAllPatients
 };
