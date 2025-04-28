@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Search, Filter, Check, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -10,118 +10,116 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DatePicker } from "@/components/date-picker"
+import { apiRequest } from "@/utils/apiUtils"
 
-// Sample appointments data
-const appointmentsData = [
-  {
-    id: "1",
-    patientName: "John Smith",
-    patientEmail: "john.smith@example.com",
-    doctorName: "Dr. Sarah Johnson",
-    doctorSpecialty: "Cardiology",
-    date: "2023-10-15",
-    time: "09:00 AM",
-    status: "confirmed",
-    paymentStatus: "paid",
-    fee: 150,
-  },
-  {
-    id: "2",
-    patientName: "Emily Davis",
-    patientEmail: "emily.davis@example.com",
-    doctorName: "Dr. Michael Chen",
-    doctorSpecialty: "Neurology",
-    date: "2023-10-15",
-    time: "10:30 AM",
-    status: "confirmed",
-    paymentStatus: "paid",
-    fee: 180,
-  },
-  {
-    id: "3",
-    patientName: "Robert Wilson",
-    patientEmail: "robert.wilson@example.com",
-    doctorName: "Dr. Emily Rodriguez",
-    doctorSpecialty: "Pediatrics",
-    date: "2023-10-15",
-    time: "11:45 AM",
-    status: "pending",
-    paymentStatus: "pending",
-    fee: 120,
-  },
-  {
-    id: "4",
-    patientName: "Sarah Johnson",
-    patientEmail: "sarah.johnson@example.com",
-    doctorName: "Dr. James Wilson",
-    doctorSpecialty: "Orthopedics",
-    date: "2023-10-16",
-    time: "09:15 AM",
-    status: "confirmed",
-    paymentStatus: "paid",
-    fee: 200,
-  },
-  {
-    id: "5",
-    patientName: "Michael Brown",
-    patientEmail: "michael.brown@example.com",
-    doctorName: "Dr. Lisa Thompson",
-    doctorSpecialty: "Dermatology",
-    date: "2023-10-16",
-    time: "02:00 PM",
-    status: "cancelled",
-    paymentStatus: "refunded",
-    fee: 160,
-  },
-  {
-    id: "6",
-    patientName: "Jennifer Lee",
-    patientEmail: "jennifer.lee@example.com",
-    doctorName: "Dr. Sarah Johnson",
-    doctorSpecialty: "Cardiology",
-    date: "2023-10-17",
-    time: "11:00 AM",
-    status: "confirmed",
-    paymentStatus: "paid",
-    fee: 150,
-  },
-  {
-    id: "7",
-    patientName: "David Miller",
-    patientEmail: "david.miller@example.com",
-    doctorName: "Dr. Michael Chen",
-    doctorSpecialty: "Neurology",
-    date: "2023-10-17",
-    time: "03:30 PM",
-    status: "confirmed",
-    paymentStatus: "pending",
-    fee: 180,
-  },
-]
+interface appointmentsData {
+  id: string
+  patient_name: string
+  patient_email: string
+  doctor_name: string
+  specialization: string
+  appointment_date: string
+  appointment_time: string
+  status: string
+  payment_status: string
+  amount: number
+}
+
 
 export function AdminAppointments() {
   const [searchQuery, setSearchQuery] = useState("")
   const [statusFilter, setStatusFilter] = useState("all")
   const [paymentFilter, setPaymentFilter] = useState("all")
   const [showFilters, setShowFilters] = useState(false)
+  const [appointments, setAppointments] = useState<appointmentsData[]>([])
+
+  useEffect(()=>{
+    const fetchAppointments = async () => {
+      try {
+        const response = await apiRequest<appointmentsData[]>("/api/admin/appointments", {
+          method: "GET",
+          authenticated: true,
+        });
+        setAppointments(response);
+      } catch (error) {
+        console.error("Error fetching appointments:", error);
+      }
+    };
+    fetchAppointments();
+  }, []);
+
+  const handleConfirmAppointment: (appointmentId: string) => Promise<void> = async (appointmentId: string) => {
+    try {
+      await apiRequest(`/api/admin/appointments/${appointmentId}/confirm`, {
+        method: "PATCH",
+        authenticated: true,
+      });
+      setAppointments((prev) =>
+        prev.map((appointment) =>
+          appointment.id === appointmentId
+            ? { ...appointment, status: "confirmed" }
+            : appointment
+        )
+      );
+    } catch (error) {
+      console.error("Error confirming appointment:", error);
+    }
+  };
+
+  const handleCancelAppointment: (appointmentId: string) => Promise<void> = async (appointmentId: string) => {
+    try {
+      await apiRequest(`/api/admin/appointments/${appointmentId}/cancel`, {
+        method: "PATCH",
+        authenticated: true,
+      });
+      setAppointments((prev) =>
+        prev.map((appointment) =>
+          appointment.id === appointmentId
+            ? { ...appointment, status: "cancelled" }
+            : appointment
+        )
+      );
+    } catch (error) {
+      console.error("Error canceling appointment:", error);
+    }
+  };
+
+  const handleCompleteAppointment: (appointmentId: string) => Promise<void> = async (appointmentId: string) => {
+    try {
+      await apiRequest(`/api/admin/appointments/${appointmentId}/complete`, {
+        method: "PATCH",
+        authenticated: true,
+      });
+      setAppointments((prev) =>
+        prev.map((appointment) =>
+          appointment.id === appointmentId
+            ? { ...appointment, status: "completed" }
+            : appointment
+        )
+      );
+    } catch (error) {
+      console.error("Error completing appointment:", error);
+    }
+  };
+
 
   const formatDate = (dateString: string) => {
     const options: Intl.DateTimeFormatOptions = { year: "numeric", month: "long", day: "numeric" }
     return new Date(dateString).toLocaleDateString(undefined, options)
   }
 
-  const filteredAppointments = appointmentsData.filter((appointment) => {
+  const filteredAppointments = appointments.filter((appointment) => {
     // Search filter
     const searchMatch =
-      appointment.patientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      appointment.doctorName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      appointment.patientEmail.toLowerCase().includes(searchQuery.toLowerCase())
+      appointment.patient_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      appointment.doctor_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      appointment.patient_email.toLowerCase().includes(searchQuery.toLowerCase())
 
     // Status filter
     const statusMatch = statusFilter === "all" || appointment.status === statusFilter
 
     // Payment filter
-    const paymentMatch = paymentFilter === "all" || appointment.paymentStatus === paymentFilter
+    const paymentMatch = paymentFilter === "all" || appointment.payment_status === paymentFilter
 
     return searchMatch && statusMatch && paymentMatch
   })
@@ -141,8 +139,8 @@ export function AdminAppointments() {
     }
   }
 
-  const getPaymentStatusBadge = (status: string) => {
-    switch (status) {
+  const getPaymentStatusBadge = (payment_status: string) => {
+    switch (payment_status) {
       case "paid":
         return <Badge className="bg-green-500 hover:bg-green-600">Paid</Badge>
       case "pending":
@@ -150,7 +148,7 @@ export function AdminAppointments() {
       case "refunded":
         return <Badge className="bg-blue-500 hover:bg-blue-600">Refunded</Badge>
       default:
-        return <Badge variant="outline">{status}</Badge>
+        return <Badge variant="outline">{payment_status}</Badge>
     }
   }
 
@@ -249,27 +247,27 @@ export function AdminAppointments() {
                       >
                         <td className="p-4 align-middle">
                           <div>
-                            <p className="font-medium">{appointment.patientName}</p>
-                            <p className="text-xs text-muted-foreground">{appointment.patientEmail}</p>
+                            <p className="font-medium">{appointment.patient_name}</p>
+                            <p className="text-xs text-muted-foreground">{appointment.patient_email}</p>
                           </div>
                         </td>
                         <td className="p-4 align-middle">
                           <div>
-                            <p>{appointment.doctorName}</p>
-                            <p className="text-xs text-muted-foreground">{appointment.doctorSpecialty}</p>
+                            <p>{appointment.doctor_name}</p>
+                            <p className="text-xs text-muted-foreground">{appointment.specialization}</p>
                           </div>
                         </td>
                         <td className="p-4 align-middle">
                           <div>
-                            <p>{formatDate(appointment.date)}</p>
-                            <p className="text-xs text-muted-foreground">{appointment.time}</p>
+                            <p>{formatDate(appointment.appointment_date)}</p>
+                            <p className="text-xs text-muted-foreground">{appointment.appointment_time}</p>
                           </div>
                         </td>
                         <td className="p-4 align-middle">{getStatusBadge(appointment.status)}</td>
                         <td className="p-4 align-middle">
                           <div>
-                            {getPaymentStatusBadge(appointment.paymentStatus)}
-                            <p className="text-xs text-muted-foreground mt-1">${appointment.fee}</p>
+                            {getPaymentStatusBadge(appointment.payment_status)}
+                            <p className="text-xs text-muted-foreground mt-1">${appointment.amount}</p>
                           </div>
                         </td>
                         <td className="p-4 align-middle">
@@ -278,6 +276,7 @@ export function AdminAppointments() {
                               <Button
                                 variant="outline"
                                 size="sm"
+                                onClick={() => handleConfirmAppointment(appointment.id)}
                                 className="h-8 text-green-500 hover:text-green-500 hover:bg-green-500/10"
                               >
                                 <Check className="h-4 w-4 mr-1" />
@@ -287,6 +286,7 @@ export function AdminAppointments() {
                             {(appointment.status === "pending" || appointment.status === "confirmed") && (
                               <Button
                                 variant="outline"
+                                onClick={() => handleCancelAppointment(appointment.id)}
                                 size="sm"
                                 className="h-8 text-red-500 hover:text-red-500 hover:bg-red-500/10"
                               >
@@ -297,6 +297,7 @@ export function AdminAppointments() {
                             {appointment.status === "confirmed" && (
                               <Button
                                 variant="outline"
+                                onClick={() => handleCompleteAppointment(appointment.id)}
                                 size="sm"
                                 className="h-8 text-blue-500 hover:text-blue-500 hover:bg-blue-500/10"
                               >

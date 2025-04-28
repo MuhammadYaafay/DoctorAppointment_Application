@@ -40,7 +40,7 @@ const getDashboardStats = async (req, res) => {
     const [earnings] = await pool.query(`
       SELECT SUM(amount) AS totalEarnings
       FROM payments
-      WHERE status = 'completed'
+      WHERE payment_status = 'completed'
     `);
 
     // Total users by role
@@ -198,6 +198,7 @@ const getAllAppointments = async (req, res) => {
         a.id, a.appointment_date, a.appointment_time, 
         a.status, a.payment_status,
         u.name AS patient_name,
+        u.email AS patient_email,
         d.specialization,
         doc.name AS doctor_name,
         p.amount
@@ -216,7 +217,6 @@ const getAllAppointments = async (req, res) => {
   }
 };
 
-// Cancel appointment by admin
 const cancelAppointmentByAdmin = async (req, res) => {
   try {
     const appointmentId = req.params.id;
@@ -233,13 +233,8 @@ const cancelAppointmentByAdmin = async (req, res) => {
     }
 
     await pool.query(
-      'UPDATE appointments SET status = "cancelled" WHERE id = ?',
-      [appointmentId]
-    );
-
-    await pool.query(
-      'UPDATE payments SET payment_status = "cancelled" WHERE appointment_id = ?',
-      [appointmentId]
+      'UPDATE appointments, payments SET status = "cancelled", payment_status = "failed" WHERE appointments.id = ? AND payments.appointment_id = ?',
+      [appointmentId, appointmentId]
     );
 
     res.json({ message: "Appointment cancelled successfully" });
@@ -248,6 +243,68 @@ const cancelAppointmentByAdmin = async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 };
+
+const confirmAppointmentByAdmin = async (req, res) => {
+  try {
+    const appointmentId = req.params.id;
+
+    const [appointments] = await pool.query(
+      'SELECT * FROM appointments WHERE id = ? AND status != "confirmed"',
+      [appointmentId]
+    );
+
+    if (appointments.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "Appointment not found or already confirmed" });
+    }
+
+    await pool.query(
+      'UPDATE appointments SET status = "confirmed" WHERE id = ?',
+      [appointmentId]
+    );
+
+    res.json({ message: "Appointment confirmed successfully" });
+  } catch (error) {
+    console.error("Confirm appointment by admin error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+const completeAppointmentByAdmin = async (req, res) => {
+  try {
+    const appointmentId = req.params.id;
+
+    const [appointments] = await pool.query(
+      'SELECT * FROM appointments WHERE id = ? AND status != "completed"',
+      [appointmentId]
+    );
+
+    if (appointments.length === 0) {
+      return res
+        .status(404)
+        .json({ message: "Appointment not found or already completed" });
+    }
+
+    await pool.query(
+      'UPDATE appointments SET status = "completed" WHERE id = ?',
+      [appointmentId]
+    );
+
+    await pool.query(
+      'UPDATE payments SET payment_status = "completed" WHERE appointment_id = ?',
+      [appointmentId]
+    );
+
+    res.json({ message: "Appointment completed successfully" });
+  } catch (error) {
+    console.error("Complete appointment by admin error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+
+
 
 module.exports = {
   getAllDoctors,
@@ -258,4 +315,6 @@ module.exports = {
   getAllUsers,
   getAllAppointments,
   cancelAppointmentByAdmin,
+  confirmAppointmentByAdmin,
+  completeAppointmentByAdmin
 };

@@ -9,6 +9,8 @@ const {
   getAllUsers,
   getAllAppointments,
   cancelAppointmentByAdmin,
+  confirmAppointmentByAdmin,
+  completeAppointmentByAdmin
 } = require("../controllers/admin.controller");
 
 const router = express.Router();
@@ -32,6 +34,8 @@ router.get('/users', getAllUsers);
 
 //appointment management
 router.get('/appointments', getAllAppointments);
+router.patch('/appointments/:id/confirm', confirmAppointmentByAdmin);
 router.patch('/appointments/:id/cancel', cancelAppointmentByAdmin);
+router.patch('/appointments/:id/complete', completeAppointmentByAdmin);
 
 module.exports = router;

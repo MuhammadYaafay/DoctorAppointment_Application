@@ -56,7 +56,7 @@ CREATE TABLE
         amount DECIMAL(10, 2) NOT NULL,
         razorpay_order_id VARCHAR(255) NOT NULL,
         razorpay_payment_id VARCHAR(255),
-        status ENUM ('pending', 'completed', 'failed') DEFAULT 'pending',
+        payment_status ENUM ('pending', 'completed', 'failed') DEFAULT 'pending',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (appointment_id) REFERENCES appointments (id) ON DELETE CASCADE
     );
